@@ -1,36 +1,145 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# مالی‌نمای یکپارچه
 
-## Getting Started
+داشبورد وب برای تجمیع **فروش**، **خرید** و **موجودی کالا** از:
 
-First, run the development server:
+- CRM (REST عمومی)
+- نرم‌افزار حسابداری **هلو** (وب‌سرویس TncHoloo)
+- نرم‌افزار حسابداری **سپیدار** (وب‌سرویس فروشگاهی)
+
+---
+
+## نصب سریع (پیشنهادی)
+
+روی سرور لینوکس (Ubuntu/Debian):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# اگر از گیت کلون می‌کنید:
+git clone <آدرس-ریپو> accounting
+cd accounting
+
+# نصب و اجرا با یک دستور
+bash install.sh
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+بعد از نصب، برنامه روی همه اینترفیس‌ها گوش می‌دهد:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- لوکال: `http://127.0.0.1:3000`
+- شبکه / IP سرور: `http://IP-سرور:3000`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### گزینه‌های اسکریپت
 
-## Learn More
+```bash
+bash install.sh                 # بیلد production + اجرا روی پورت 3000
+bash install.sh --dev           # حالت توسعه
+bash install.sh --port 4000     # پورت دلخواه
+bash install.sh --no-start      # فقط نصب و بیلد
+sudo bash install.sh --systemd  # سرویس دائمی systemd
+bash scripts/stop.sh            # توقف سرویس/پروسه
+```
 
-To learn more about Next.js, take a look at the following resources:
+### پیش‌نیاز
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| مورد | حداقل |
+|------|--------|
+| سیستم‌عامل | Linux (Ubuntu 20.04+ توصیه می‌شود) |
+| Node.js | 20 یا بالاتر |
+| npm | همراه Node |
+| RAM | حدود ۱ گیگ آزاد برای بیلد |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+اگر Node ندارید:
 
-## Deploy on Vercel
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## راهنمای راه‌اندازی بعد از نصب
+
+1. مرورگر را باز کنید: `http://IP:3000`
+2. به‌صورت پیش‌فرض داده‌ها **نمونه (Mock)** هستند تا بدون API هم داشبورد کار کند
+3. بروید به **اتصال API** (`/settings`)
+4. برای هر منبع (CRM / هلو / سپیدار) آدرس و اطلاعات ورود را وارد کنید
+5. تیک «داده‌های نمونه» را بردارید و **ذخیره** کنید
+6. در داشبورد روی **همگام‌سازی** بزنید
+
+تنظیمات در `data/config.json` ذخیره می‌شود (این فایل در گیت commit نمی‌شود).
+
+---
+
+## اتصال هلو (TncHoloo)
+
+مستند: [docs/webserviceHelp.pdf](./docs/webserviceHelp.pdf)
+
+1. وب‌سرویس هلو را نصب و سرویس `TncHolooWebService` را Start کنید
+2. آدرس پایه: `http://IP-هلو:8080/TncHoloo/api`
+3. نام کاربری، رمز عبور، **dbname** (مثلاً `Holoo1`)
+4. حالت نمونه را خاموش کنید
+
+Endpointهای استفاده‌شده:
+
+- `POST /Login` — رمز به‌صورت Base64
+- `GET /Product` — موجودی
+- `GET /Invoice?type=1|3` — فروش / خرید
+
+---
+
+## اتصال سپیدار (وب‌سرویس فروشگاهی)
+
+مستند: [docs/sepidar-e-commerce-web-service-v1.0.0.pdf](./docs/sepidar-e-commerce-web-service-v1.0.0.pdf)
+
+1. در سپیدار حالت سرویس‌دهنده (کاربر admin) — پورت پیش‌فرض **7373**
+2. تعریف دستگاه و گرفتن سریال ۸ حرفی
+3. در تنظیمات: `http://IP:7373` + سریال + کاربر/رمز
+4. دکمه **ثبت دستگاه (Register)**
+5. همگام‌سازی داشبورد
+
+توجه: این وب‌سرویس **فاکتور خرید** ندارد.
+
+---
+
+## اجرای دستی (بدون اسکریپت)
+
+```bash
+npm install
+npm run build
+npm run start          # http://0.0.0.0:3000
+
+# یا توسعه:
+npm run dev
+```
+
+---
+
+## صفحات
+
+| مسیر | توضیح |
+|------|--------|
+| `/` | داشبورد نموداری فروش / خرید / موجودی |
+| `/inventory` | موجودی کالا به تفکیک |
+| `/settings` | اتصال APIها |
+
+---
+
+## ساختار مهم
+
+```
+install.sh                 # نصب یک‌مرحله‌ای
+scripts/stop.sh            # توقف
+src/lib/adapters/          # آداپتر CRM / هلو / سپیدار
+docs/                      # PDF مستندات رسمی
+data/                      # تنظیمات محلی (gitignore)
+```
+
+---
+
+## عیب‌یابی
+
+| مشکل | راه حل |
+|------|--------|
+| `Node.js نصب نیست` | طبق بخش پیش‌نیاز Node 20+ نصب کنید |
+| پورت اشغال است | `bash install.sh --port 3001` |
+| هلو/سپیدار وصل نمی‌شود | از سرور به `IP:8080` یا `IP:7373` با `curl` تست کنید؛ فایروال را چک کنید |
+| لاگ برنامه | `tail -f logs/app.log` |
+| سرویس systemd | `sudo systemctl status mali-namay` |
