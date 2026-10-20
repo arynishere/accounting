@@ -1,21 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { DashboardData, DataSource } from "@/lib/types";
 import { InventoryTable } from "./InventoryTable";
 import { InventoryPie } from "./Charts";
+import { LabelWithHelp } from "./HelpTip";
 
-export function InventoryView() {
-  const [data, setData] = useState<DashboardData | null>(null);
+export function InventoryView({
+  initialData = null,
+}: {
+  initialData?: DashboardData | null;
+}) {
+  const [data] = useState<DashboardData | null>(initialData);
   const [source, setSource] = useState<"all" | DataSource>("all");
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    void (async () => {
-      const res = await fetch("/api/dashboard", { cache: "no-store" });
-      if (res.ok) setData(await res.json());
-    })();
-  }, []);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -33,19 +31,22 @@ export function InventoryView() {
 
   if (!data) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-[var(--muted)]">
-        در حال بارگذاری موجودی...
+      <div className="panel text-center text-lg text-[var(--muted)]">
+        داده‌ای برای نمایش موجودی نیست. داشبورد را یک‌بار باز کنید یا سرور را
+        بررسی کنید.
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold">
-          موجودی کالا
+        <h2 className="text-[var(--text-2xl)] font-extrabold">
+          <LabelWithHelp help="این صفحه فقط موجودی انبار را نشان می‌دهد. می‌توانید منبع یا نام کالا را فیلتر کنید.">
+            موجودی کالا
+          </LabelWithHelp>
         </h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-base text-[var(--muted)]">
           فیلتر بر اساس منبع داده و جستجوی کالا
         </p>
       </div>
@@ -57,7 +58,7 @@ export function InventoryView() {
           onChange={(e) => setSource(e.target.value as "all" | DataSource)}
         >
           <option value="all">همه منابع</option>
-          <option value="crm">CRM</option>
+          <option value="crm">پیام‌گستر</option>
           <option value="helo">هلو</option>
           <option value="sepidar">سپیدار</option>
         </select>

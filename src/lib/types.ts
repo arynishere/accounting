@@ -11,6 +11,12 @@ export interface SourceConfig {
   companyId?: string;
   /** هلو: نام بانک اطلاعاتی (dbname) */
   dbName?: string;
+  /** CRM: payamgostar (SOAP پیش‌فرض) یا rest */
+  crmDialect?: "payamgostar" | "rest";
+  /** CRM پیام‌گستر: typeKey اختیاری برای SearchInvoice */
+  crmTypeKey?: string;
+  /** CRM پیام‌گستر: query اختیاری جستجو */
+  crmQuery?: string;
   useMock: boolean;
   /** سپیدار: سریال ۸ حرفی دستگاه */
   deviceSerial?: string;

@@ -2,7 +2,7 @@
 
 داشبورد وب برای تجمیع **فروش**، **خرید** و **موجودی کالا** از:
 
-- CRM (REST عمومی)
+- CRM **پیام‌گستر** (SOAP/WCF)
 - نرم‌افزار حسابداری **هلو** (وب‌سرویس TncHoloo)
 - نرم‌افزار حسابداری **سپیدار** (وب‌سرویس فروشگاهی)
 
@@ -65,6 +65,24 @@ sudo apt-get install -y nodejs
 6. در داشبورد روی **همگام‌سازی** بزنید
 
 تنظیمات در `data/config.json` ذخیره می‌شود (این فایل در گیت commit نمی‌شود).
+
+---
+
+## اتصال CRM پیام‌گستر (PayamGostar)
+
+فایل [docs/V2.5.1-Customer.pdf](./docs/V2.5.1-Customer.pdf) فقط **Release Notes** نسخه Customer است.
+قرارداد API از WSDL رسمی سرویس‌های WCF خوانده شده:
+
+1. آدرس پایه: `https://crm.your-domain.com` (مسیر `/Services/API` خودکار اضافه می‌شود)
+2. نام کاربری و رمز کاربر پیام‌گستر را در تنظیمات وارد کنید
+3. حالت نمونه را خاموش کنید و همگام‌سازی بزنید
+
+سرویس‌های استفاده‌شده:
+
+- `IUser.CheckUserAuthentication`
+- `IInvoice.SearchInvoice` / `SearchPurchaseInvoice`
+- `IProduct.FindProductByCode`
+- `IInventory.GetRemainingStock`
 
 ---
 

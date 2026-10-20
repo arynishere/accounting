@@ -12,6 +12,9 @@ const defaultSource = (): SourceConfig => ({
   password: "",
   companyId: "",
   dbName: "",
+  crmDialect: "payamgostar",
+  crmTypeKey: "",
+  crmQuery: "",
   useMock: true,
   deviceSerial: "",
   integrationId: "",
@@ -23,7 +26,8 @@ export function defaultConfig(): AppConfig {
   return {
     crm: {
       ...defaultSource(),
-      baseUrl: "https://api.your-crm.example/v1",
+      baseUrl: "https://crm.payamgostar.com",
+      crmDialect: "payamgostar",
     },
     helo: {
       ...defaultSource(),

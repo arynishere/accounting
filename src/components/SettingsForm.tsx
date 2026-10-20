@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AppConfig, SourceConfig } from "@/lib/types";
+import { LabelWithHelp } from "./HelpTip";
 
 const emptySource = (): SourceConfig => ({
   enabled: true,
@@ -11,6 +12,9 @@ const emptySource = (): SourceConfig => ({
   password: "",
   companyId: "",
   dbName: "",
+  crmDialect: "payamgostar",
+  crmTypeKey: "",
+  crmQuery: "",
   useMock: true,
   deviceSerial: "",
   integrationId: "",
@@ -19,7 +23,11 @@ const emptySource = (): SourceConfig => ({
 });
 
 const empty: AppConfig = {
-  crm: { ...emptySource(), baseUrl: "https://api.your-crm.example/v1" },
+  crm: {
+    ...emptySource(),
+    baseUrl: "https://crm.payamgostar.com",
+    crmDialect: "payamgostar",
+  },
   helo: {
     ...emptySource(),
     baseUrl: "http://127.0.0.1:8080/TncHoloo/api",
@@ -33,9 +41,15 @@ const empty: AppConfig = {
 };
 
 const titles = {
-  crm: "CRM",
+  crm: "CRM پیام‌گستر (PayamGostar)",
   helo: "وب‌سرویس هلو (TncHoloo)",
   sepidar: "وب‌سرویس سپیدار (فروشگاهی)",
+} as const;
+
+const titleHelp = {
+  crm: "تنظیمات اتصال به نرم‌افزار CRM پیام‌گستر. اگر مطمئن نیستید، حالت نمونه را روشن بگذارید.",
+  helo: "تنظیمات اتصال به حسابداری هلو. معمولاً آدرس شبیه http://IP:8080/TncHoloo/api است.",
+  sepidar: "تنظیمات اتصال به سپیدار. بعد از وارد کردن سریال، دکمه ثبت دستگاه را بزنید.",
 } as const;
 
 type SourceKey = keyof AppConfig;
@@ -59,8 +73,10 @@ function SourceFields({
   return (
     <section className="panel space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
-          {titles[sourceKey]}
+        <h2 className="text-[var(--text-lg)] font-extrabold">
+          <LabelWithHelp help={titleHelp[sourceKey]}>
+            {titles[sourceKey]}
+          </LabelWithHelp>
         </h2>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -80,6 +96,18 @@ function SourceFields({
         />
         استفاده از داده‌های نمونه (تا زمان اتصال واقعی)
       </label>
+
+      {sourceKey === "crm" && (
+        <p className="rounded-xl bg-[var(--accent-soft)]/60 px-3 py-2 text-xs leading-6 text-[var(--ink)]">
+          پیام‌گستر از وب‌سرویس‌های <strong>SOAP/WCF</strong> استفاده می‌کند
+          (مسیر <code>/Services/API</code>). آدرس نمونه:{" "}
+          <code>https://crm.yourdomain.com</code> — فروش از{" "}
+          <code>IInvoice.SearchInvoice</code>، خرید از{" "}
+          <code>SearchPurchaseInvoice</code>، موجودی از{" "}
+          <code>IInventory.GetRemainingStock</code>. PDF نسخه Customer 2.5.1
+          فقط Release Notes است.
+        </p>
+      )}
 
       {sourceKey === "helo" && (
         <p className="rounded-xl bg-[var(--accent-soft)]/60 px-3 py-2 text-xs leading-6 text-[var(--ink)]">
@@ -109,11 +137,13 @@ function SourceFields({
               ? "http://IP-سرور-سپیدار:7373"
               : sourceKey === "helo"
                 ? "http://IP:8080/TncHoloo/api"
-                : "https://..."
+                : sourceKey === "crm"
+                  ? "https://crm.payamgostar.com"
+                  : "https://..."
           }
         />
 
-        {sourceKey === "crm" && (
+        {sourceKey === "crm" && value.crmDialect === "rest" && (
           <Field
             label="API Key / Token"
             value={value.apiKey}
@@ -137,6 +167,39 @@ function SourceFields({
           onChange={(v) => set("password", v)}
           type="password"
         />
+
+        {sourceKey === "crm" && (
+          <>
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--muted)]">نوع اتصال CRM</span>
+              <select
+                className="field"
+                value={value.crmDialect || "payamgostar"}
+                onChange={(e) =>
+                  set(
+                    "crmDialect",
+                    e.target.value as SourceConfig["crmDialect"],
+                  )
+                }
+              >
+                <option value="payamgostar">پیام‌گستر (SOAP)</option>
+                <option value="rest">REST سفارشی</option>
+              </select>
+            </label>
+            <Field
+              label="typeKey (اختیاری)"
+              value={value.crmTypeKey ?? ""}
+              onChange={(v) => set("crmTypeKey", v)}
+              placeholder="کلید نوع فاکتور"
+            />
+            <Field
+              label="query جستجو (اختیاری)"
+              value={value.crmQuery ?? ""}
+              onChange={(v) => set("crmQuery", v)}
+              placeholder="خالی = همه (طبق دسترسی کاربر)"
+            />
+          </>
+        )}
 
         {sourceKey === "helo" && (
           <Field
@@ -215,8 +278,10 @@ function Field({
   placeholder?: string;
 }) {
   return (
-    <label className="block text-sm">
-      <span className="mb-1 block text-[var(--muted)]">{label}</span>
+    <label className="block text-base">
+      <span className="mb-1.5 flex items-center gap-1.5 font-semibold text-[var(--muted)]">
+        {label}
+      </span>
       <input
         className="field"
         type={type}
@@ -292,12 +357,14 @@ export function SettingsForm() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold">
-          اتصال به APIها
+        <h2 className="text-[var(--text-2xl)] font-extrabold">
+          <LabelWithHelp help="در این صفحه مشخصات ورود به هر نرم‌افزار را وارد می‌کنید تا داشبورد بتواند اطلاعات واقعی بخواند.">
+            اتصال به سیستم‌ها
+          </LabelWithHelp>
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-7 text-[var(--muted)]">
-          برای سپیدار از مستند وب‌سرویس فروشگاهی استفاده می‌شود. آدرس سرور، سریال
-          دستگاه و کاربر را وارد کنید، Register بزنید، سپس همگام‌سازی داشبورد.
+        <p className="mt-3 max-w-3xl text-base leading-8 text-[var(--muted)]">
+          روی علامت سؤال کنار هر مورد بروید تا توضیح ساده ببینید. اگر هنوز
+          اطلاعات سرور را ندارید، «داده‌های نمونه» را روشن بگذارید.
         </p>
       </div>
 

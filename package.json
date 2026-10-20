@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
-    "start": "next start -H 0.0.0.0 -p 3000",
+    "start": "NODE_ENV=production next start -H 0.0.0.0 -p 3000",
+    "start:prod": "npm run build && npm run start",
     "lint": "eslint"
   },
   "dependencies": {

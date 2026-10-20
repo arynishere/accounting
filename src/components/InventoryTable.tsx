@@ -2,9 +2,10 @@
 
 import { formatMoney, formatNumber } from "@/lib/format";
 import type { InventoryItem } from "@/lib/types";
+import { LabelWithHelp } from "./HelpTip";
 
 const sourceLabel = {
-  crm: "CRM",
+  crm: "پیام‌گستر",
   helo: "هلو",
   sepidar: "سپیدار",
 } as const;
@@ -21,42 +22,59 @@ export function InventoryTable({
   return (
     <section className="panel animate-rise overflow-hidden">
       <header className="mb-4">
-        <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
-          موجودی کالا به تفکیک
+        <h2 className="text-[var(--text-lg)] font-extrabold">
+          <LabelWithHelp help="جدول کالاهای انبار: کد، نام، گروه، تعداد، ارزش ریالی و اینکه از کدام نرم‌افزار آمده.">
+            موجودی کالا به تفکیک
+          </LabelWithHelp>
         </h2>
-        <p className="text-sm text-[var(--muted)]">
+        <p className="mt-1 text-base text-[var(--muted)]">
           کد کالا، گروه، انبار و منبع داده
         </p>
       </header>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table className="data-table">
           <thead>
-            <tr className="border-b border-[var(--border)] text-[var(--muted)]">
-              <th className="px-3 py-2 text-right font-medium">کد</th>
-              <th className="px-3 py-2 text-right font-medium">نام کالا</th>
-              <th className="px-3 py-2 text-right font-medium">گروه</th>
-              <th className="px-3 py-2 text-right font-medium">انبار</th>
-              <th className="px-3 py-2 text-right font-medium">تعداد</th>
-              <th className="px-3 py-2 text-right font-medium">ارزش</th>
-              <th className="px-3 py-2 text-right font-medium">منبع</th>
+            <tr>
+              <th>
+                <LabelWithHelp help="کد شناسایی کالا در نرم‌افزار مبدأ">
+                  کد
+                </LabelWithHelp>
+              </th>
+              <th>نام کالا</th>
+              <th>
+                <LabelWithHelp help="دسته‌بندی کالا مثل الکترونیکی یا غذایی">
+                  گروه
+                </LabelWithHelp>
+              </th>
+              <th>انبار</th>
+              <th>
+                <LabelWithHelp help="چند واحد از این کالا الان موجود است">
+                  تعداد
+                </LabelWithHelp>
+              </th>
+              <th>
+                <LabelWithHelp help="ارزش ریالی تقریبی موجودی این کالا">
+                  ارزش
+                </LabelWithHelp>
+              </th>
+              <th>
+                <LabelWithHelp help="این ردیف از کدام سیستم خوانده شده">
+                  منبع
+                </LabelWithHelp>
+              </th>
             </tr>
           </thead>
           <tbody>
             {rows.map((item) => (
-              <tr
-                key={`${item.source}-${item.sku}-${item.warehouse}`}
-                className="border-b border-[var(--border)]/70 hover:bg-[var(--accent-soft)]/50"
-              >
-                <td className="px-3 py-2.5 font-mono text-xs">{item.sku}</td>
-                <td className="px-3 py-2.5 font-medium text-[var(--ink)]">
-                  {item.name}
-                </td>
-                <td className="px-3 py-2.5">{item.category}</td>
-                <td className="px-3 py-2.5">{item.warehouse}</td>
-                <td className="px-3 py-2.5">{formatNumber(item.quantity)}</td>
-                <td className="px-3 py-2.5">{formatMoney(item.value)}</td>
-                <td className="px-3 py-2.5">
-                  <span className="rounded-lg bg-[var(--accent-soft)] px-2 py-1 text-xs text-[var(--accent)]">
+              <tr key={`${item.source}-${item.sku}-${item.warehouse}`}>
+                <td className="font-mono text-base">{item.sku}</td>
+                <td className="font-bold text-[var(--ink)]">{item.name}</td>
+                <td>{item.category}</td>
+                <td>{item.warehouse}</td>
+                <td className="font-semibold">{formatNumber(item.quantity)}</td>
+                <td className="font-semibold">{formatMoney(item.value)}</td>
+                <td>
+                  <span className="rounded-lg bg-[var(--accent-soft)] px-2.5 py-1 text-base font-bold text-[var(--accent)]">
                     {sourceLabel[item.source]}
                   </span>
                 </td>

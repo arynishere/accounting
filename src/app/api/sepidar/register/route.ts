@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadConfig, saveConfig } from "@/lib/config";
 import { registerSepidarDevice } from "@/lib/adapters/sepidar";
+import { clearDashboardCache } from "@/lib/dashboard-cache";
 
 export async function POST() {
   try {
@@ -25,6 +26,7 @@ export async function POST() {
       },
     };
     await saveConfig(next);
+    clearDashboardCache();
 
     return NextResponse.json({
       ok: true,

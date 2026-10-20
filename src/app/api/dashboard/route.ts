@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
-import { loadConfig } from "@/lib/config";
-import { buildDashboard } from "@/lib/adapters";
+import { getDashboardData } from "@/lib/get-dashboard";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const config = await loadConfig();
-    const data = await buildDashboard(config);
-    return NextResponse.json(data);
+    const url = new URL(request.url);
+    const force = url.searchParams.get("refresh") === "1";
+    const data = await getDashboardData(force);
+
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "private, max-age=15",
+        "X-Cache": force ? "BYPASS" : "HIT",
+      },
+    });
   } catch (err) {
     return NextResponse.json(
       {

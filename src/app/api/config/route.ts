@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { defaultConfig, loadConfig, saveConfig } from "@/lib/config";
+import { clearDashboardCache } from "@/lib/dashboard-cache";
 import type { AppConfig } from "@/lib/types";
 
 function sanitize(config: AppConfig): AppConfig {
@@ -72,6 +73,7 @@ export async function PUT(request: Request) {
     };
 
     await saveConfig(next);
+    clearDashboardCache();
     return NextResponse.json({ ok: true, config: sanitize(next) });
   } catch (err) {
     return NextResponse.json(
