@@ -6,6 +6,11 @@ import type {
   MonthlyPoint,
 } from "./types";
 import { MONTH_LABELS } from "./format";
+import type { DateRange } from "./date-range";
+import {
+  isValidRange,
+  persianMonthIndicesInRange,
+} from "./date-range";
 
 function monthlyFor(source: DataSource): MonthlyPoint[] {
   const seed =
@@ -103,13 +108,43 @@ function inventoryFor(source: DataSource): InventoryItem[] {
   }));
 }
 
-export function getMockAdapterResult(source: DataSource): AdapterResult {
+export function getMockAdapterResult(
+  source: DataSource,
+  range?: DateRange | null,
+): AdapterResult {
+  let monthly = monthlyFor(source);
+  let salesByCategory = salesCats(source);
+  let purchasesByCategory = purchaseCats(source);
+
+  if (isValidRange(range)) {
+    const indices = new Set(persianMonthIndicesInRange(range));
+    const kept = monthly.filter((_, i) => indices.has(i));
+    const fullSales = monthly.reduce((s, m) => s + m.sales, 0);
+    const keptSales = kept.reduce((s, m) => s + m.sales, 0);
+    const ratio = fullSales > 0 ? keptSales / fullSales : 0;
+    monthly = MONTH_LABELS.map((month, i) =>
+      indices.has(i)
+        ? monthly[i]
+        : { month, sales: 0, purchases: 0 },
+    );
+    salesByCategory = salesByCategory.map((r) => ({
+      ...r,
+      amount: Math.round(r.amount * ratio),
+      quantity: Math.round(r.quantity * ratio),
+    }));
+    purchasesByCategory = purchasesByCategory.map((r) => ({
+      ...r,
+      amount: Math.round(r.amount * ratio),
+      quantity: Math.round(r.quantity * ratio),
+    }));
+  }
+
   return {
     source,
     status: "mock",
-    monthly: monthlyFor(source),
-    salesByCategory: salesCats(source),
-    purchasesByCategory: purchaseCats(source),
+    monthly,
+    salesByCategory,
+    purchasesByCategory,
     inventory: inventoryFor(source),
   };
 }

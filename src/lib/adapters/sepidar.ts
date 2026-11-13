@@ -1,6 +1,8 @@
 import type { AdapterResult, CategoryBreakdown, MonthlyPoint, SourceConfig } from "../types";
 import { getMockAdapterResult } from "../mock-data";
 import { MONTH_LABELS } from "../format";
+import type { DateRange } from "../date-range";
+import { dateInRange } from "../date-range";
 import {
   encryptArbitraryCode,
   encryptIntegrationId,
@@ -103,13 +105,14 @@ export async function registerSepidarDevice(config: SourceConfig): Promise<{
 
 export async function fetchSepidar(
   config: SourceConfig,
+  range?: DateRange | null,
 ): Promise<AdapterResult> {
   if (!config.enabled) {
     return empty("disconnected");
   }
 
   if (config.useMock || !config.baseUrl) {
-    return getMockAdapterResult("sepidar");
+    return getMockAdapterResult("sepidar", range);
   }
 
   try {
@@ -177,8 +180,11 @@ export async function fetchSepidar(
       };
     });
 
-    const monthly = aggregateMonthlySales(invoices ?? []);
-    const salesByCategory = salesFromInvoices(invoices ?? []);
+    const filteredInvoices = (invoices ?? []).filter((inv) =>
+      dateInRange(inv.Date, range),
+    );
+    const monthly = aggregateMonthlySales(filteredInvoices);
+    const salesByCategory = salesFromInvoices(filteredInvoices);
 
     return {
       source: "sepidar",

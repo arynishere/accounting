@@ -32,6 +32,8 @@ export interface AppConfig {
   crm: SourceConfig;
   helo: SourceConfig;
   sepidar: SourceConfig;
+  /** هدف فروش دوره (ریال) — برای گزارش تحقق هدف */
+  salesTarget?: number;
 }
 
 export interface MonthlyPoint {
@@ -83,6 +85,9 @@ export interface DashboardData {
     profit: number;
   };
   generatedAt: string;
+  /** بازه انتخاب‌شده برای نمودار و خروجی (YYYY-MM-DD) */
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface AdapterResult {

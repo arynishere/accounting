@@ -6,6 +6,7 @@ import type {
   MonthlyPoint,
   SourceMetrics,
 } from "../types";
+import type { DateRange } from "../date-range";
 import { fetchCrm } from "./crm";
 import { fetchHelo } from "./helo";
 import { fetchSepidar } from "./sepidar";
@@ -80,18 +81,19 @@ function toMetrics(result: AdapterResult): SourceMetrics {
     inventoryValue,
     inventoryCount,
     lastSync:
-      result.status === "disconnected"
-        ? null
-        : new Date().toISOString(),
+      result.status === "disconnected" ? null : new Date().toISOString(),
     error: result.error,
   };
 }
 
-export async function buildDashboard(config: AppConfig): Promise<DashboardData> {
+export async function buildDashboard(
+  config: AppConfig,
+  range?: DateRange | null,
+): Promise<DashboardData> {
   const results = await Promise.all([
-    fetchCrm(config.crm),
-    fetchHelo(config.helo),
-    fetchSepidar(config.sepidar),
+    fetchCrm(config.crm, range),
+    fetchHelo(config.helo, range),
+    fetchSepidar(config.sepidar, range),
   ]);
 
   const active = results.filter((r) => r.status !== "disconnected");
@@ -117,5 +119,7 @@ export async function buildDashboard(config: AppConfig): Promise<DashboardData> 
       profit: totalSales - totalPurchases,
     },
     generatedAt: new Date().toISOString(),
+    dateFrom: range?.from,
+    dateTo: range?.to,
   };
 }

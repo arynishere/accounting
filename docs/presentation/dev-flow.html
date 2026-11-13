@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>فلو توسعه — مالی‌نمای یکپارچه</title>
+  <style>
+    :root {
+      --bg: #1a0a08;
+      --bg-2: #2a100c;
+      --ink: #fffaf7;
+      --muted: #fdba74;
+      --accent: #ea580c;
+      --hot: #dc2626;
+      --card: rgba(255, 255, 255, 0.06);
+      --line: rgba(251, 146, 60, 0.35);
+      --white: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Tahoma, "Segoe UI", sans-serif;
+      background: #0c0504;
+      color: var(--ink);
+      overflow: hidden;
+      height: 100vh;
+    }
+    .deck {
+      position: relative;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      margin: auto;
+      inset: 0;
+      position: absolute;
+      background:
+        radial-gradient(900px 500px at 100% 0%, rgba(220, 38, 38, 0.35), transparent 55%),
+        radial-gradient(700px 420px at 0% 100%, rgba(234, 88, 12, 0.28), transparent 50%),
+        linear-gradient(160deg, var(--bg), var(--bg-2));
+      border-radius: 0;
+      overflow: hidden;
+    }
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: clamp(1.5rem, 4vw, 3.2rem) clamp(1.5rem, 5vw, 4rem);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .slide.active { display: flex; animation: fade .35s ease; }
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+    .eyebrow {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: clamp(.9rem, 1.5vw, 1.05rem);
+      letter-spacing: 0.02em;
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      line-height: 1.25;
+      font-weight: 800;
+    }
+    h2 {
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      line-height: 1.3;
+      font-weight: 800;
+    }
+    h3 {
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      color: var(--muted);
+      font-weight: 700;
+    }
+    p, li {
+      font-size: clamp(1rem, 1.7vw, 1.25rem);
+      line-height: 1.85;
+      color: #ffe8d6;
+    }
+    .lead { max-width: 42rem; color: #ffedd5; }
+    .grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      margin-top: .5rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: 1.1rem 1.2rem;
+      text-align: right;
+    }
+    .card strong {
+      display: block;
+      font-size: 1.15rem;
+      margin-bottom: .35rem;
+      color: #fff;
+    }
+    .card span { color: #fdba74; font-size: .95rem; line-height: 1.6; }
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .65rem;
+      align-items: center;
+      margin-top: .8rem;
+    }
+    .chip {
+      background: linear-gradient(135deg, var(--accent), var(--hot));
+      color: #fff;
+      border-radius: 999px;
+      padding: .55rem 1rem;
+      font-weight: 800;
+      font-size: clamp(.85rem, 1.4vw, 1rem);
+      white-space: nowrap;
+    }
+    .arrow { color: var(--muted); font-weight: 800; font-size: 1.2rem; }
+    .cols {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 1.25rem;
+      align-items: stretch;
+      margin-top: .4rem;
+    }
+    @media (max-width: 800px) {
+      .cols { grid-template-columns: 1fr; }
+    }
+    ul { padding-right: 1.2rem; }
+    li { margin: .35rem 0; }
+    .footer-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .75rem 1.5rem;
+      background: rgba(0,0,0,.35);
+      border-top: 1px solid var(--line);
+      font-size: .9rem;
+      color: #fdba74;
+      z-index: 5;
+    }
+    .nav button {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: #fff;
+      border-radius: .6rem;
+      padding: .4rem .8rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+    }
+    .nav button:hover { background: rgba(234,88,12,.25); }
+    .brand {
+      font-weight: 800;
+      background: linear-gradient(90deg, #fff, #fb923c);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .big-num {
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 900;
+      color: #fb923c;
+      line-height: 1;
+    }
+    .stack-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-top: .6rem;
+    }
+    .tag {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      border-radius: .7rem;
+      padding: .45rem .8rem;
+      font-weight: 700;
+      color: #fff;
+      font-size: .95rem;
+    }
+    .mono {
+      direction: ltr;
+      text-align: left;
+      font-family: ui-monospace, Consolas, monospace;
+      background: rgba(0,0,0,.35);
+      border: 1px solid var(--line);
+      border-radius: .8rem;
+      padding: .9rem 1rem;
+      font-size: clamp(.85rem, 1.4vw, 1rem);
+      color: #ffedd5;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .title-slide { text-align: center; align-items: center; }
+    .title-slide .lead { text-align: center; }
+    .progress {
+      position: absolute;
+      top: 0; right: 0; left: 0;
+      height: 4px;
+      background: rgba(255,255,255,.08);
+      z-index: 6;
+    }
+    .progress > i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--hot));
+      width: 0%;
+      transition: width .3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <div class="progress"><i id="bar"></i></div>
+
+    <!-- 1 -->
+    <section class="slide active title-slide">
+      <p class="eyebrow">ارائه فنی · مالی‌نمای یکپارچه</p>
+      <h1>فلو توسعه محصول</h1>
+      <p class="lead">از اتصال CRM و حسابداری تا داشبورد نموداری، بازه تاریخ، همگام‌سازی و خروجی Excel/XML</p>
+      <div class="stack-row" style="justify-content:center;margin-top:1.2rem">
+        <span class="tag">TypeScript</span>
+        <span class="tag">Next.js / React</span>
+        <span class="tag">Recharts</span>
+        <span class="tag">REST + SOAP</span>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide">
+      <p class="eyebrow">۰۱ · مسئله</p>
+      <h2>چرا این محصول؟</h2>
+      <div class="cols">
+        <div>
+          <ul>
+            <li>داده فروش/خرید/موجودی در چند سیستم پراکنده است</li>
+            <li>CRM پیام‌گستر + هلو + سپیدار هم‌زمان دیده نمی‌شوند</li>
+            <li>نیاز به نمودار مدیریتی شبیه Power BI</li>
+            <li>نیاز به خروجی قابل ارائه (Excel / XML)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <strong>هدف ارائه</strong>
+          <span>یک داشبورد یکپارچه وب که APIهای حسابداری و CRM را تجمیع کند، بازه زمانی بگیرد، جزئیات را drill-down کند و خروجی تحلیلی بدهد.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide">
+      <p class="eyebrow">۰۲ · معماری</p>
+      <h2>نمای کلی سیستم</h2>
+      <div class="flow">
+        <span class="chip">CRM پیام‌گستر</span><span class="arrow">←</span>
+        <span class="chip">هلو</span><span class="arrow">←</span>
+        <span class="chip">سپیدار</span>
+      </div>
+      <div class="flow" style="margin-top:.4rem">
+        <span class="arrow">↓</span>
+      </div>
+      <div class="flow">
+        <span class="chip">Adapters (TypeScript)</span>
+        <span class="arrow">→</span>
+        <span class="chip">Dashboard API</span>
+        <span class="arrow">→</span>
+        <span class="chip">UI React</span>
+      </div>
+      <div class="grid" style="margin-top:1rem">
+        <div class="card"><strong>SOAP/WCF</strong><span>پیام‌گستر</span></div>
+        <div class="card"><strong>REST JSON</strong><span>هلو · سپیدار</span></div>
+        <div class="card"><strong>Next.js API</strong><span>/api/dashboard · /api/export</span></div>
+        <div class="card"><strong>Client</strong><span>نمودار · بازه · Drill-down</span></div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide">
+      <p class="eyebrow">۰۳ · استک</p>
+      <h2>با چه چیزی توسعه شد؟</h2>
+      <div class="grid">
+        <div class="card"><strong>TypeScript</strong><span>زبان اصلی منطق و تایپ‌سیف بودن آداپترها</span></div>
+        <div class="card"><strong>Next.js 16 + React 19</strong><span>SSR سبک، Route Handler، صفحات App Router</span></div>
+        <div class="card"><strong>Recharts</strong><span>نمودار ترکیبی / دونات / ستونی شبیه Power BI</span></div>
+        <div class="card"><strong>Tailwind + CSS Vars</strong><span>تم نارنجی–قرمز–سفید</span></div>
+        <div class="card"><strong>SpreadsheetML + XML</strong><span>خروجی Excel چندبرگه و XML جزئیات</span></div>
+        <div class="card"><strong>Local Cache</strong><span>کش کوتاه برای حالت لحظه‌ای</span></div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide">
+      <p class="eyebrow">۰۴ · فلو توسعه</p>
+      <h2>مسیر ساخت، قدم‌به‌قدم</h2>
+      <div class="flow">
+        <span class="chip">۱. کشف API</span>
+        <span class="arrow">→</span>
+        <span class="chip">۲. آداپترها</span>
+        <span class="arrow">→</span>
+        <span class="chip">۳. تجمیع داشبورد</span>
+        <span class="arrow">→</span>
+        <span class="chip">۴. UI نموداری</span>
+      </div>
+      <div class="flow">
+        <span class="chip">۵. بازه تاریخ</span>
+        <span class="arrow">→</span>
+        <span class="chip">۶. همگام‌سازی</span>
+        <span class="arrow">→</span>
+        <span class="chip">۷. خروجی</span>
+        <span class="arrow">→</span>
+        <span class="chip">۸. Drill-down</span>
+      </div>
+      <p class="lead" style="margin-top:1rem">هر لایه روی داده یکسان کار می‌کند: فروش · خرید · موجودی · تفکیک گروهی/منبع.</p>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide">
+      <p class="eyebrow">۰۵ · اتصال منابع</p>
+      <h2>سه منبع، سه قرارداد</h2>
+      <div class="grid">
+        <div class="card">
+          <strong>CRM پیام‌گستر</strong>
+          <span>SOAP: IUser · IInvoice · IProduct · IInventory</span>
+        </div>
+        <div class="card">
+          <strong>هلو (TncHoloo)</strong>
+          <span>REST: Login · Product · Invoice?date.from/to</span>
+        </div>
+        <div class="card">
+          <strong>سپیدار فروشگاهی</strong>
+          <span>Register → Login JWT → Items / Inventories / invoices</span>
+        </div>
+      </div>
+      <p style="margin-top:1rem">اگر منبع واقعی نباشد، حالت <strong>Mock</strong> برای دمو و آموزش فعال است.</p>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide">
+      <p class="eyebrow">۰۶ · فلو داده</p>
+      <h2>از API تا نمودار</h2>
+      <div class="mono">Config (CRM/Heloo/Sepidar)
+   ↓
+Adapters.fetch*(range?)
+   ↓
+buildDashboard()  →  DashboardData
+   ↓
+/api/dashboard?from&to
+   ↓
+UI: KPI · Charts · Brush · Export · /details/[metric]</div>
+    </section>
+
+    <!-- 8 -->
+    <section class="slide">
+      <p class="eyebrow">۰۷ · قابلیت‌های محصول</p>
+      <h2>آنچه امروز آماده است</h2>
+      <div class="cols">
+        <ul>
+          <li>داشبورد یکپارچه فروش / خرید / سود / موجودی</li>
+          <li>همگام‌سازی دستی · ساعتی · لحظه‌ای</li>
+          <li>بازه تاریخ + Brush روی نمودار</li>
+          <li>Drill-down با کلیک روی KPI</li>
+          <li>خروجی Excel چندبرگه و XML</li>
+        </ul>
+        <div class="card">
+          <strong>صفحات جزئیات</strong>
+          <span>/details/sales<br/>/details/purchases<br/>/details/profit<br/>/details/stock<br/><br/>نمودار کلی + ریز گروهی + ریز منبع + جدول</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="slide">
+      <p class="eyebrow">۰۸ · تجربه بصری</p>
+      <h2>زبان طراحی</h2>
+      <div class="grid">
+        <div class="card"><strong>پالت</strong><span>نارنجی · قرمز · سفید</span></div>
+        <div class="card"><strong>الهام</strong><span>گزارش‌های Power BI</span></div>
+        <div class="card"><strong>RTL فارسی</strong><span>فونت Vazirmatn</span></div>
+        <div class="card"><strong>راهنما</strong><span>علامت ؟ روی هر بخش</span></div>
+      </div>
+      <p class="lead" style="margin-top:1rem">اولویت: خوانایی مدیریتی، نه شلوغی داشبوردی.</p>
+    </section>
+
+    <!-- 10 -->
+    <section class="slide">
+      <p class="eyebrow">۰۹ · تحویل</p>
+      <h2>وضعیت فعلی روی سرور</h2>
+      <div class="cols">
+        <div>
+          <p class="big-num">Live</p>
+          <p>سرویس production روی پورت ۳۰۰۰</p>
+          <ul>
+            <li>مسیر کد: <span style="color:#fb923c">/root/accounting</span></li>
+            <li>نصب: <span style="color:#fb923c">bash install.sh</span></li>
+            <li>مستندات API در File Share</li>
+          </ul>
+        </div>
+        <div class="mono">http://IP:3000
+http://IP:3000/settings
+http://IP:3000/details/sales
+/api/dashboard?from&to
+/api/export?format=xls|xml</div>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="slide title-slide">
+      <p class="eyebrow">جمع‌بندی</p>
+      <h1>یک فلو، چند منبع، یک تصویر مالی</h1>
+      <p class="lead">کشف API → آداپتر TypeScript → تجمیع Next.js → نمودار React → بازه/همگام/خروجی/Drill-down</p>
+      <p style="margin-top:1.5rem;color:#fdba74;font-weight:800">آماده برای ارائه و دمو</p>
+    </section>
+
+    <div class="footer-bar">
+      <span class="brand">مالی‌نمای یکپارچه</span>
+      <span id="counter">1 / 11</span>
+      <div class="nav">
+        <button type="button" id="prev">قبلی</button>
+        <button type="button" id="next">بعدی</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll(".slide")];
+    let i = 0;
+    const counter = document.getElementById("counter");
+    const bar = document.getElementById("bar");
+
+    function show(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+      counter.textContent = (i + 1) + " / " + slides.length;
+      bar.style.width = ((i + 1) / slides.length * 100) + "%";
+    }
+
+    document.getElementById("prev").onclick = () => show(i - 1);
+    document.getElementById("next").onclick = () => show(i + 1);
+    window.addEventListener("keydown", (e) => {
+      if (["ArrowLeft", "ArrowDown", "PageDown", " "].includes(e.key)) {
+        e.preventDefault();
+        show(i + 1);
+      }
+      if (["ArrowRight", "ArrowUp", "PageUp"].includes(e.key)) {
+        e.preventDefault();
+        show(i - 1);
+      }
+      if (e.key === "Home") show(0);
+      if (e.key === "End") show(slides.length - 1);
+    });
+    show(0);
+  </script>
+</body>
+</html>

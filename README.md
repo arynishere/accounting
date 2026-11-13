@@ -135,8 +135,15 @@ npm run dev
 | مسیر | توضیح |
 |------|--------|
 | `/` | داشبورد نموداری فروش / خرید / موجودی |
+| `/sales` | فهرست ۱۱ گزارش فروش کارفرما |
+| `/sales/[id]` | جزئیات گزارش فروش (نمودار + جدول + Excel/XML) |
+| `/finance` | فهرست ۱۴ بخش داشبورد مالی مدیریتی |
+| `/finance/[id]` | جزئیات گزارش مالی |
+| `/details/[metric]` | drill-down KPI داشبورد |
 | `/inventory` | موجودی کالا به تفکیک |
-| `/settings` | اتصال APIها |
+| `/settings` | اتصال APIها + هدف فروش |
+
+API گزارش‌ها: `GET /api/reports/[id]?from&to` و `format=xml|xls`
 
 ---
 

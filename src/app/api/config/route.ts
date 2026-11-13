@@ -26,6 +26,7 @@ function sanitize(config: AppConfig): AppConfig {
         ? mask(config.sepidar.rsaPublicKeyXml)
         : "",
     },
+    salesTarget: config.salesTarget,
   };
 }
 
@@ -70,6 +71,10 @@ export async function PUT(request: Request) {
           current.sepidar.rsaPublicKeyXml ?? "",
         ),
       },
+      salesTarget:
+        typeof body.salesTarget === "number"
+          ? body.salesTarget
+          : (current.salesTarget ?? defaultConfig().salesTarget),
     };
 
     await saveConfig(next);

@@ -7,6 +7,8 @@ import type {
 } from "../types";
 import { getMockAdapterResult } from "../mock-data";
 import { MONTH_LABELS } from "../format";
+import type { DateRange } from "../date-range";
+import { dateInRange } from "../date-range";
 
 /**
  * آداپتر CRM پیام‌گستر (PayamGostar) — وب‌سرویس‌های WCF/SOAP
@@ -38,13 +40,16 @@ type SoapInvoice = {
   }>;
 };
 
-export async function fetchCrm(config: SourceConfig): Promise<AdapterResult> {
+export async function fetchCrm(
+  config: SourceConfig,
+  range?: DateRange | null,
+): Promise<AdapterResult> {
   if (!config.enabled) {
     return empty("disconnected");
   }
 
   if (config.useMock || !config.baseUrl) {
-    return getMockAdapterResult("crm");
+    return getMockAdapterResult("crm", range);
   }
 
   // اگر هنوز endpoint عمومی REST قدیمی تنظیم شده باشد
@@ -86,8 +91,15 @@ export async function fetchCrm(config: SourceConfig): Promise<AdapterResult> {
       ).catch(() => ""),
     ]);
 
-    const sales = parseInvoices(salesXml, "SearchInvoiceResult");
-    const purchases = parseInvoices(purchaseXml, "SearchPurchaseInvoiceResult");
+    const salesAll = parseInvoices(salesXml, "SearchInvoiceResult");
+    const purchasesAll = parseInvoices(
+      purchaseXml,
+      "SearchPurchaseInvoiceResult",
+    );
+    const sales = salesAll.filter((inv) => dateInRange(inv.invoiceDate, range));
+    const purchases = purchasesAll.filter((inv) =>
+      dateInRange(inv.invoiceDate, range),
+    );
 
     const productCodes = new Set<string>();
     for (const inv of [...sales, ...purchases]) {

@@ -38,6 +38,7 @@ const empty: AppConfig = {
     baseUrl: "http://127.0.0.1:7373",
     generationVersion: "101",
   },
+  salesTarget: 5_000_000_000,
 };
 
 const titles = {
@@ -52,7 +53,7 @@ const titleHelp = {
   sepidar: "تنظیمات اتصال به سپیدار. بعد از وارد کردن سریال، دکمه ثبت دستگاه را بزنید.",
 } as const;
 
-type SourceKey = keyof AppConfig;
+type SourceKey = "crm" | "helo" | "sepidar";
 
 function SourceFields({
   sourceKey,
@@ -367,6 +368,26 @@ export function SettingsForm() {
           اطلاعات سرور را ندارید، «داده‌های نمونه» را روشن بگذارید.
         </p>
       </div>
+
+      <section className="panel space-y-4">
+        <h2 className="text-[var(--text-lg)] font-extrabold">
+          <LabelWithHelp help="هدف فروش دوره برای گزارش «فروش واقعی و تحقق هدف». واحد: ریال.">
+            هدف فروش دوره
+          </LabelWithHelp>
+        </h2>
+        <Field
+          label="هدف فروش (ریال)"
+          type="number"
+          value={String(config.salesTarget ?? "")}
+          onChange={(v) =>
+            setConfig((c) => ({
+              ...c,
+              salesTarget: Number(v) || 0,
+            }))
+          }
+          placeholder="مثلاً 5000000000"
+        />
+      </section>
 
       {(Object.keys(titles) as SourceKey[]).map((key) => (
         <SourceFields

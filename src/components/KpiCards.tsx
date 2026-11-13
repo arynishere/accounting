@@ -1,52 +1,78 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowDownLeft, ArrowUpRight, Boxes, TrendingUp } from "lucide-react";
 import { formatCompact, formatMoney } from "@/lib/format";
 import type { DashboardData } from "@/lib/types";
+import type { MetricKey } from "@/lib/metric-detail";
 import { LabelWithHelp } from "./HelpTip";
 
-export function KpiCards({ data }: { data: DashboardData }) {
-  const cards = [
+type Props = {
+  data: DashboardData;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+export function KpiCards({ data, dateFrom, dateTo }: Props) {
+  const qs =
+    dateFrom && dateTo
+      ? `?from=${encodeURIComponent(dateFrom)}&to=${encodeURIComponent(dateTo)}`
+      : "";
+
+  const cards: Array<{
+    title: string;
+    help: string;
+    value: string;
+    hint: string;
+    icon: typeof ArrowUpRight;
+    tone: string;
+    metric: MetricKey;
+  }> = [
     {
       title: "جمع فروش",
-      help: "مجموع مبلغ فروش‌ها از همه سیستم‌های متصل (پیام‌گستر، هلو و سپیدار) در دوره جاری.",
+      help: "برای دیدن نمودار کلی و ریز فروش کلیک کنید.",
       value: formatCompact(data.totals.sales),
       hint: formatMoney(data.totals.sales),
       icon: ArrowUpRight,
       tone: "sales",
+      metric: "sales",
     },
     {
       title: "جمع خرید",
-      help: "مجموع مبلغ خرید کالا/خدمات که از سیستم‌های متصل خوانده شده است.",
+      help: "برای دیدن نمودار کلی و ریز خرید کلیک کنید.",
       value: formatCompact(data.totals.purchases),
       hint: formatMoney(data.totals.purchases),
       icon: ArrowDownLeft,
       tone: "buy",
+      metric: "purchases",
     },
     {
       title: "سود ناخالص تقریبی",
-      help: "تقریبی است: جمع فروش منهای جمع خرید. هزینه‌های دیگر مثل اجاره یا حقوق اینجا نیست.",
+      help: "برای دیدن جزئیات سود تقریبی کلیک کنید.",
       value: formatCompact(data.totals.profit),
       hint: formatMoney(data.totals.profit),
       icon: TrendingUp,
       tone: "profit",
+      metric: "profit",
     },
     {
       title: "ارزش موجودی",
-      help: "ارزش ریالی کالاهایی که الان در انبارها موجود است (تعداد × قیمت).",
+      help: "برای دیدن جزئیات موجودی کلیک کنید.",
       value: formatCompact(data.totals.inventoryValue),
       hint: `${formatCompact(data.totals.inventoryUnits)} واحد کالا`,
       icon: Boxes,
       tone: "stock",
+      metric: "stock",
     },
   ];
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
-        <article
+        <Link
           key={card.title}
-          className={`kpi-card kpi-${card.tone} animate-rise`}
+          href={`/details/${card.metric}${qs}`}
+          className={`kpi-card kpi-${card.tone} kpi-clickable animate-rise block no-underline`}
         >
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -57,12 +83,15 @@ export function KpiCards({ data }: { data: DashboardData }) {
                 {card.value}
               </p>
               <p className="mt-2 text-base text-[var(--muted)]">{card.hint}</p>
+              <p className="mt-3 text-sm font-bold text-[var(--accent-hot)]">
+                مشاهده نمودار کلی و ریز ←
+              </p>
             </div>
             <span className="rounded-xl bg-white p-3 text-[var(--accent)] shadow-sm">
               <card.icon size={26} />
             </span>
           </div>
-        </article>
+        </Link>
       ))}
     </div>
   );

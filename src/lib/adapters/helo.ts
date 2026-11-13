@@ -7,6 +7,8 @@ import type {
 } from "../types";
 import { getMockAdapterResult } from "../mock-data";
 import { MONTH_LABELS } from "../format";
+import type { DateRange } from "../date-range";
+import { isValidRange } from "../date-range";
 
 /**
  * آداپتر وب‌سرویس هلو (مستند holoostore.com/webserviceHelp.pdf)
@@ -49,13 +51,16 @@ type HolooInvoice = {
   }>;
 };
 
-export async function fetchHelo(config: SourceConfig): Promise<AdapterResult> {
+export async function fetchHelo(
+  config: SourceConfig,
+  range?: DateRange | null,
+): Promise<AdapterResult> {
   if (!config.enabled) {
     return empty("disconnected");
   }
 
   if (config.useMock || !config.baseUrl) {
-    return getMockAdapterResult("helo");
+    return getMockAdapterResult("helo", range);
   }
 
   try {
@@ -67,8 +72,10 @@ export async function fetchHelo(config: SourceConfig): Promise<AdapterResult> {
       Accept: "application/json",
     };
 
-    const yearAgo = formatDate(shiftYears(-1));
-    const today = formatDate(new Date());
+    const from = isValidRange(range)
+      ? range.from
+      : formatDate(shiftYears(-1));
+    const to = isValidRange(range) ? range.to : formatDate(new Date());
 
     const [products, salesInvoices, purchaseInvoices] = await Promise.all([
       holooGet<{ product?: HolooProduct[] } | HolooProduct[]>(
@@ -76,16 +83,16 @@ export async function fetchHelo(config: SourceConfig): Promise<AdapterResult> {
         headers,
       ),
       holooGet<{ invoice?: HolooInvoice[] } | HolooInvoice[]>(
-        `${base}/Invoice?type=1&date.from=${yearAgo}&date.to=${today}`,
+        `${base}/Invoice?type=1&date.from=${from}&date.to=${to}`,
         headers,
       ).catch(() =>
         holooGet<{ invoice?: HolooInvoice[] } | HolooInvoice[]>(
-          `${base}/Invoice?date.from=${yearAgo}&date.to=${today}`,
+          `${base}/Invoice?date.from=${from}&date.to=${to}`,
           headers,
         ),
       ),
       holooGet<{ invoice?: HolooInvoice[] } | HolooInvoice[]>(
-        `${base}/Invoice?type=3&date.from=${yearAgo}&date.to=${today}`,
+        `${base}/Invoice?type=3&date.from=${from}&date.to=${to}`,
         headers,
       ).catch(() => ({ invoice: [] as HolooInvoice[] })),
     ]);

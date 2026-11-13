@@ -39,6 +39,7 @@ export function defaultConfig(): AppConfig {
       baseUrl: "http://127.0.0.1:7373",
       generationVersion: "101",
     },
+    salesTarget: 5_000_000_000,
   };
 }
 
