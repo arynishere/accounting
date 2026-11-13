@@ -70,6 +70,13 @@ export async function PUT(request: Request) {
           body.sepidar?.rsaPublicKeyXml,
           current.sepidar.rsaPublicKeyXml ?? "",
         ),
+        sepidarDialect:
+          body.sepidar?.sepidarDialect ||
+          current.sepidar.sepidarDialect ||
+          "mysql",
+        mysqlHost: body.sepidar?.mysqlHost ?? current.sepidar.mysqlHost,
+        mysqlPort: body.sepidar?.mysqlPort ?? current.sepidar.mysqlPort,
+        dbName: body.sepidar?.dbName ?? current.sepidar.dbName,
       },
       salesTarget:
         typeof body.salesTarget === "number"

@@ -20,6 +20,9 @@ const emptySource = (): SourceConfig => ({
   integrationId: "",
   rsaPublicKeyXml: "",
   generationVersion: "101",
+  sepidarDialect: "mysql",
+  mysqlHost: "127.0.0.1",
+  mysqlPort: "3306",
 });
 
 const empty: AppConfig = {
@@ -37,6 +40,9 @@ const empty: AppConfig = {
     ...emptySource(),
     baseUrl: "http://127.0.0.1:7373",
     generationVersion: "101",
+    sepidarDialect: "mysql",
+    mysqlHost: "127.0.0.1",
+    mysqlPort: "3306",
   },
   salesTarget: 5_000_000_000,
 };
@@ -122,27 +128,31 @@ function SourceFields({
 
       {sourceKey === "sepidar" && (
         <p className="rounded-xl bg-[var(--accent-soft)]/60 px-3 py-2 text-xs leading-6 text-[var(--ink)]">
-          مطابق مستند سپیدار: سرویس‌دهنده روی پورت پیش‌فرض{" "}
-          <strong>7373</strong>، احراز هویت با Register دستگاه (AES) + Login
-          (MD5/JWT). این وب‌سرویس فاکتور فروش و موجودی دارد؛ فاکتور خرید ندارد.
+          حالت پیشنهادی: اتصال مستقیم به <strong>MySQL سپیدار</strong> و خواندن
+          فروش/خرید/موجودی. اگر ویوهای{" "}
+          <code>mali_sales_invoices</code> / <code>mali_purchase_invoices</code> /{" "}
+          <code>mali_inventory</code> بسازید دقیق‌ترین نتیجه را می‌گیرید؛ در غیر
+          این صورت کشف خودکار جداول انجام می‌شود.
         </p>
       )}
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Field
-          label="آدرس پایه API"
-          value={value.baseUrl}
-          onChange={(v) => set("baseUrl", v)}
-          placeholder={
-            sourceKey === "sepidar"
-              ? "http://IP-سرور-سپیدار:7373"
-              : sourceKey === "helo"
-                ? "http://IP:8080/TncHoloo/api"
-                : sourceKey === "crm"
-                  ? "https://crm.payamgostar.com"
-                  : "https://..."
-          }
-        />
+        {sourceKey !== "sepidar" || value.sepidarDialect === "api" ? (
+          <Field
+            label="آدرس پایه API"
+            value={value.baseUrl}
+            onChange={(v) => set("baseUrl", v)}
+            placeholder={
+              sourceKey === "sepidar"
+                ? "http://IP-سرور-سپیدار:7373"
+                : sourceKey === "helo"
+                  ? "http://IP:8080/TncHoloo/api"
+                  : sourceKey === "crm"
+                    ? "https://crm.payamgostar.com"
+                    : "https://..."
+            }
+          />
+        ) : null}
 
         {sourceKey === "crm" && value.crmDialect === "rest" && (
           <Field
@@ -154,7 +164,11 @@ function SourceFields({
         )}
 
         <Field
-          label="نام کاربری"
+          label={
+            sourceKey === "sepidar" && value.sepidarDialect !== "api"
+              ? "نام کاربری MySQL"
+              : "نام کاربری"
+          }
           value={value.username ?? ""}
           onChange={(v) => set("username", v)}
         />
@@ -162,7 +176,9 @@ function SourceFields({
           label={
             sourceKey === "helo"
               ? "رمز عبور (ساده؛ خودکار Base64 می‌شود)"
-              : "رمز عبور"
+              : sourceKey === "sepidar" && value.sepidarDialect !== "api"
+                ? "رمز عبور MySQL"
+                : "رمز عبور"
           }
           value={value.password ?? ""}
           onChange={(v) => set("password", v)}
@@ -213,51 +229,103 @@ function SourceFields({
 
         {sourceKey === "sepidar" && (
           <>
-            <Field
-              label="سریال دستگاه (۸ کاراکتر)"
-              value={value.deviceSerial ?? ""}
-              onChange={(v) => set("deviceSerial", v)}
-              placeholder="مثلاً 10017ff3"
-            />
-            <Field
-              label="IntegrationID"
-              value={value.integrationId ?? ""}
-              onChange={(v) => set("integrationId", v)}
-              placeholder="چهار رقم اول سریال (خودکار)"
-            />
-            <Field
-              label="GenerationVersion"
-              value={value.generationVersion ?? "101"}
-              onChange={(v) => set("generationVersion", v)}
-              placeholder="101"
-            />
-            <label className="block text-sm md:col-span-2">
-              <span className="mb-1 block text-[var(--muted)]">
-                کلید عمومی RSA (پس از Register پر می‌شود)
-              </span>
-              <textarea
-                className="field min-h-24 font-mono text-xs"
-                value={
-                  value.rsaPublicKeyXml?.includes("•")
-                    ? value.rsaPublicKeyXml
-                    : (value.rsaPublicKeyXml ?? "")
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--muted)]">روش اتصال سپیدار</span>
+              <select
+                className="field"
+                value={value.sepidarDialect || "mysql"}
+                onChange={(e) =>
+                  set(
+                    "sepidarDialect",
+                    e.target.value as SourceConfig["sepidarDialect"],
+                  )
                 }
-                onChange={(e) => set("rsaPublicKeyXml", e.target.value)}
-                placeholder="<RSAKeyValue>...</RSAKeyValue>"
-              />
-            </label>
-            <div className="md:col-span-2">
-              <button
-                type="button"
-                className="btn-primary"
-                disabled={registering}
-                onClick={onRegister}
               >
-                {registering
-                  ? "در حال Register..."
-                  : "ثبت دستگاه در سپیدار (Register)"}
-              </button>
-            </div>
+                <option value="mysql">MySQL (پیشنهادی)</option>
+                <option value="api">وب‌سرویس فروشگاهی (API)</option>
+              </select>
+            </label>
+
+            {(value.sepidarDialect || "mysql") === "mysql" ? (
+              <>
+                <Field
+                  label="هاست MySQL"
+                  value={value.mysqlHost || ""}
+                  onChange={(v) => set("mysqlHost", v)}
+                  placeholder="127.0.0.1 یا IP سرور سپیدار"
+                />
+                <Field
+                  label="پورت MySQL"
+                  value={value.mysqlPort || "3306"}
+                  onChange={(v) => set("mysqlPort", v)}
+                  placeholder="3306"
+                />
+                <Field
+                  label="نام دیتابیس MySQL"
+                  value={value.dbName || ""}
+                  onChange={(v) => set("dbName", v)}
+                  placeholder="نام دیتابیس سپیدار"
+                />
+                <div className="md:col-span-2">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={registering}
+                    onClick={onRegister}
+                  >
+                    {registering ? "در حال تست..." : "تست اتصال MySQL و لیست جداول"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Field
+                  label="سریال دستگاه (۸ کاراکتر)"
+                  value={value.deviceSerial ?? ""}
+                  onChange={(v) => set("deviceSerial", v)}
+                  placeholder="مثلاً 10017ff3"
+                />
+                <Field
+                  label="IntegrationID"
+                  value={value.integrationId ?? ""}
+                  onChange={(v) => set("integrationId", v)}
+                  placeholder="چهار رقم اول سریال (خودکار)"
+                />
+                <Field
+                  label="GenerationVersion"
+                  value={value.generationVersion ?? "101"}
+                  onChange={(v) => set("generationVersion", v)}
+                  placeholder="101"
+                />
+                <label className="block text-sm md:col-span-2">
+                  <span className="mb-1 block text-[var(--muted)]">
+                    کلید عمومی RSA (پس از Register پر می‌شود)
+                  </span>
+                  <textarea
+                    className="field min-h-24 font-mono text-xs"
+                    value={
+                      value.rsaPublicKeyXml?.includes("•")
+                        ? value.rsaPublicKeyXml
+                        : (value.rsaPublicKeyXml ?? "")
+                    }
+                    onChange={(e) => set("rsaPublicKeyXml", e.target.value)}
+                    placeholder="<RSAKeyValue>...</RSAKeyValue>"
+                  />
+                </label>
+                <div className="md:col-span-2">
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={registering}
+                    onClick={onRegister}
+                  >
+                    {registering
+                      ? "در حال Register..."
+                      : "ثبت دستگاه در سپیدار (Register)"}
+                  </button>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
@@ -327,17 +395,34 @@ export function SettingsForm() {
     }
   }
 
-  async function registerSepidar() {
+  async function registerOrProbeSepidar() {
     setRegistering(true);
     setMessage(null);
     try {
-      // ابتدا تنظیمات فعلی را ذخیره کن
       const saveRes = await fetch("/api/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
       });
-      if (!saveRes.ok) throw new Error("ذخیره قبل از Register ناموفق بود");
+      if (!saveRes.ok) throw new Error("ذخیره تنظیمات ناموفق بود");
+
+      const dialect = config.sepidar.sepidarDialect || "mysql";
+      if (dialect === "mysql") {
+        const res = await fetch("/api/sepidar/mysql-probe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(config.sepidar),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.ok) {
+          throw new Error(json.error || "اتصال MySQL ناموفق بود");
+        }
+        const sample = (json.tables || []).slice(0, 8).join("، ");
+        setMessage(
+          `اتصال MySQL برقرار شد (نسخه ${json.version || "—"}). تعداد جداول: ${json.tables?.length ?? 0}. ${json.hint || ""} نمونه: ${sample}`,
+        );
+        return;
+      }
 
       const res = await fetch("/api/sepidar/register", { method: "POST" });
       const json = await res.json();
@@ -395,7 +480,9 @@ export function SettingsForm() {
           sourceKey={key}
           value={config[key]}
           onChange={(next) => setConfig((c) => ({ ...c, [key]: next }))}
-          onRegister={key === "sepidar" ? () => void registerSepidar() : undefined}
+          onRegister={
+            key === "sepidar" ? () => void registerOrProbeSepidar() : undefined
+          }
           registering={registering}
         />
       ))}

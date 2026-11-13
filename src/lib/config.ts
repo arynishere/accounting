@@ -38,6 +38,11 @@ export function defaultConfig(): AppConfig {
       ...defaultSource(),
       baseUrl: "http://127.0.0.1:7373",
       generationVersion: "101",
+      sepidarDialect: "mysql",
+      mysqlHost: "127.0.0.1",
+      mysqlPort: "3306",
+      dbName: "",
+      useMock: true,
     },
     salesTarget: 5_000_000_000,
   };
@@ -46,7 +51,19 @@ export function defaultConfig(): AppConfig {
 export async function loadConfig(): Promise<AppConfig> {
   try {
     const raw = await fs.readFile(CONFIG_PATH, "utf8");
-    return { ...defaultConfig(), ...JSON.parse(raw) };
+    const saved = JSON.parse(raw) as Partial<AppConfig>;
+    const defaults = defaultConfig();
+    return {
+      ...defaults,
+      ...saved,
+      crm: { ...defaults.crm, ...(saved.crm || {}) },
+      helo: { ...defaults.helo, ...(saved.helo || {}) },
+      sepidar: { ...defaults.sepidar, ...(saved.sepidar || {}) },
+      salesTarget:
+        typeof saved.salesTarget === "number"
+          ? saved.salesTarget
+          : defaults.salesTarget,
+    };
   } catch {
     return defaultConfig();
   }

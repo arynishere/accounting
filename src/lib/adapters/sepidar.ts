@@ -11,22 +11,12 @@ import {
   newArbitraryCode,
   decryptPublicKeyXml,
 } from "./sepidar-crypto";
+import { fetchSepidarMysql } from "./sepidar-mysql";
 
 /**
- * آداپتر وب‌سرویس فروشگاهی سپیدار (مستند v1.0.0 / API Generation 101)
- * Base: http://{host}:7373
- * Auth: Register → RSA public key → Login (MD5) → JWT + signed headers
- *
- * Endpoints used:
- *   POST /api/Devices/Register
- *   POST /api/users/login
- *   GET  /api/Items
- *   GET  /api/Items/Inventories/
- *   GET  /api/Stocks
- *   GET  /api/PriceNoteItems
- *   GET  /api/invoices/
- *
- * توجه: این محصول وب‌سرویس فاکتور خرید ندارد؛ خرید در داشبورد صفر می‌ماند.
+ * آداپتر سپیدار
+ * - mysql (پیشنهادی): خواندن مستقیم از دیتابیس MySQL
+ * - api: وب‌سرویس فروشگاهی (پورت 7373، Register/Login)
  */
 
 type SepidarInvoice = {
@@ -109,6 +99,12 @@ export async function fetchSepidar(
 ): Promise<AdapterResult> {
   if (!config.enabled) {
     return empty("disconnected");
+  }
+
+  const dialect = config.sepidarDialect || "mysql";
+  if (dialect === "mysql") {
+    if (config.useMock) return getMockAdapterResult("sepidar", range);
+    return fetchSepidarMysql(config, range);
   }
 
   if (config.useMock || !config.baseUrl) {

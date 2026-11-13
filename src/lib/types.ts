@@ -26,6 +26,12 @@ export interface SourceConfig {
   rsaPublicKeyXml?: string;
   /** سپیدار: GenerationVersion API (پیش‌فرض 101) */
   generationVersion?: string;
+  /** سپیدار: روش اتصال — mysql (پیشنهادی) یا api وب‌سرویس فروشگاهی */
+  sepidarDialect?: "mysql" | "api";
+  /** سپیدار MySQL: هاست */
+  mysqlHost?: string;
+  /** سپیدار MySQL: پورت (پیش‌فرض 3306) */
+  mysqlPort?: string;
 }
 
 export interface AppConfig {

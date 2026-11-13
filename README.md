@@ -4,29 +4,51 @@
 
 - CRM **پیام‌گستر** (SOAP/WCF)
 - نرم‌افزار حسابداری **هلو** (وب‌سرویس TncHoloo)
-- نرم‌افزار حسابداری **سپیدار** (وب‌سرویس فروشگاهی)
+- نرم‌افزار حسابداری **سپیدار** (MySQL پیشنهادی / وب‌سرویس فروشگاهی)
 
 ---
 
-## نصب سریع (پیشنهادی)
+## نصب سریع روی Ubuntu 24 (فقط یک دستور)
 
-روی سرور لینوکس (Ubuntu/Debian):
+روی ماشین جدید همین را بزنید (Node و وابستگی‌ها را خودش نصب می‌کند، کلون می‌کند، بیلد می‌گیرد و سرویس را بالا می‌آورد):
 
 ```bash
-# اگر از گیت کلون می‌کنید:
-git clone <آدرس-ریپو> accounting
-cd accounting
-
-# نصب و اجرا با یک دستور
-bash install.sh
+curl -fsSL https://raw.githubusercontent.com/arynishere/accounting/main/bootstrap-ubuntu24.sh | bash
 ```
 
-بعد از نصب، برنامه روی همه اینترفیس‌ها گوش می‌دهد:
+یا اگر ریپو را خودتان کلون کرده‌اید:
+
+```bash
+git clone https://github.com/arynishere/accounting.git
+cd accounting
+bash bootstrap-ubuntu24.sh
+```
+
+سرویس دائمی (بعد از ریبوت هم بالا بماند):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/arynishere/accounting/main/bootstrap-ubuntu24.sh | sudo bash -s -- --systemd
+```
+
+بعد از نصب:
 
 - لوکال: `http://127.0.0.1:3000`
 - شبکه / IP سرور: `http://IP-سرور:3000`
+- تنظیمات: `http://IP-سرور:3000/settings`
 
-### گزینه‌های اسکریپت
+### گزینه‌های bootstrap
+
+```bash
+bash bootstrap-ubuntu24.sh                 # نصب + بیلد + اجرا روی 3000
+bash bootstrap-ubuntu24.sh --port 4000     # پورت دلخواه
+bash bootstrap-ubuntu24.sh --dir /opt/mali-namay
+bash bootstrap-ubuntu24.sh --dev           # حالت توسعه
+bash bootstrap-ubuntu24.sh --no-start      # فقط نصب و بیلد
+sudo bash bootstrap-ubuntu24.sh --systemd  # سرویس systemd
+bash scripts/stop.sh                       # توقف
+```
+
+### نصب وقتی ریپو از قبل هست (`install.sh`)
 
 ```bash
 bash install.sh                 # بیلد production + اجرا روی پورت 3000
@@ -34,25 +56,16 @@ bash install.sh --dev           # حالت توسعه
 bash install.sh --port 4000     # پورت دلخواه
 bash install.sh --no-start      # فقط نصب و بیلد
 sudo bash install.sh --systemd  # سرویس دائمی systemd
-bash scripts/stop.sh            # توقف سرویس/پروسه
 ```
 
 ### پیش‌نیاز
 
 | مورد | حداقل |
 |------|--------|
-| سیستم‌عامل | Linux (Ubuntu 20.04+ توصیه می‌شود) |
-| Node.js | 20 یا بالاتر |
-| npm | همراه Node |
+| سیستم‌عامل | Ubuntu 24.04 (سایر لینوکس‌ها هم معمولاً کار می‌کند) |
+| Node.js | 20 یا بالاتر (اسکریپت bootstrap خودش Node 22 می‌گذارد) |
 | RAM | حدود ۱ گیگ آزاد برای بیلد |
-
-اگر Node ندارید:
-
-```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt-get install -y nodejs
-```
-
+| دسترسی | برای نصب پکیج‌ها: `sudo` |
 ---
 
 ## راهنمای راه‌اندازی بعد از نصب
@@ -103,17 +116,29 @@ Endpointهای استفاده‌شده:
 
 ---
 
-## اتصال سپیدار (وب‌سرویس فروشگاهی)
+## اتصال سپیدار (MySQL — پیشنهادی)
+
+سپیدار را از طریق **MySQL** می‌خوانیم (نه فقط وب‌سرویس).
+
+1. در تنظیمات سپیدار، روش اتصال را **MySQL** بگذارید
+2. هاست / پورت / نام کاربری / رمز / نام دیتابیس را وارد کنید
+3. دکمه **تست اتصال MySQL و لیست جداول** را بزنید
+4. حالت نمونه را خاموش کنید و همگام‌سازی کنید
+
+برای نتیجه دقیق‌تر، ویوهای استاندارد را بسازید:
+[docs/sepidar-mysql-views.sql](./docs/sepidar-mysql-views.sql)
+
+- `mali_sales_invoices`
+- `mali_purchase_invoices`
+- `mali_inventory`
+
+اگر ویو نباشد، سیستم جداول شبیه Invoice/Item را خودکار کشف می‌کند.
+
+### حالت جایگزین: وب‌سرویس فروشگاهی
 
 مستند: [docs/sepidar-e-commerce-web-service-v1.0.0.pdf](./docs/sepidar-e-commerce-web-service-v1.0.0.pdf)
 
-1. در سپیدار حالت سرویس‌دهنده (کاربر admin) — پورت پیش‌فرض **7373**
-2. تعریف دستگاه و گرفتن سریال ۸ حرفی
-3. در تنظیمات: `http://IP:7373` + سریال + کاربر/رمز
-4. دکمه **ثبت دستگاه (Register)**
-5. همگام‌سازی داشبورد
-
-توجه: این وب‌سرویس **فاکتور خرید** ندارد.
+روش اتصال را روی **API** بگذارید، سریال دستگاه را Register کنید (پورت پیش‌فرض ۷۳۷۳).
 
 ---
 
@@ -150,13 +175,13 @@ API گزارش‌ها: `GET /api/reports/[id]?from&to` و `format=xml|xls`
 ## ساختار مهم
 
 ```
-install.sh                 # نصب یک‌مرحله‌ای
+bootstrap-ubuntu24.sh      # نصب کامل روی Ubuntu 24 (کلون + Node + بیلد + اجرا)
+install.sh                 # نصب وقتی ریپو از قبل هست
 scripts/stop.sh            # توقف
-src/lib/adapters/          # آداپتر CRM / هلو / سپیدار
-docs/                      # PDF مستندات رسمی
+src/lib/adapters/          # آداپتر CRM / هلو / سپیدار / Sepidar-MySQL
+docs/                      # PDF مستندات رسمی + ویوهای MySQL سپیدار
 data/                      # تنظیمات محلی (gitignore)
 ```
-
 ---
 
 ## عیب‌یابی

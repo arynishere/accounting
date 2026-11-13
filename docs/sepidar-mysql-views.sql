@@ -1,0 +1,48 @@
+-- ویوهای استاندارد مالی‌نما روی دیتابیس MySQL سپیدار
+-- جداول مبدأ را با نام واقعی دیتابیس خودتان جایگزین کنید.
+
+-- نمونه فروش
+-- CREATE OR REPLACE VIEW mali_sales_invoices AS
+-- SELECT
+--   i.InvoiceDate AS invoice_date,
+--   i.NetPrice    AS amount,
+--   IFNULL(i.Discount, 0) AS discount,
+--   IFNULL(g.Title, 'سایر') AS category,
+--   IFNULL(d.Quantity, 1) AS quantity
+-- FROM YourSalesInvoiceTable i
+-- LEFT JOIN YourInvoiceItemTable d ON d.InvoiceRef = i.InvoiceID
+-- LEFT JOIN YourItemTable it ON it.ItemID = d.ItemRef
+-- LEFT JOIN YourGroupTable g ON g.GroupID = it.GroupRef;
+
+-- نمونه خرید
+-- CREATE OR REPLACE VIEW mali_purchase_invoices AS
+-- SELECT
+--   i.InvoiceDate AS invoice_date,
+--   i.NetPrice    AS amount,
+--   IFNULL(i.Discount, 0) AS discount,
+--   IFNULL(g.Title, 'سایر') AS category,
+--   IFNULL(d.Quantity, 1) AS quantity
+-- FROM YourPurchaseInvoiceTable i
+-- LEFT JOIN YourPurchaseItemTable d ON d.InvoiceRef = i.InvoiceID
+-- LEFT JOIN YourItemTable it ON it.ItemID = d.ItemRef
+-- LEFT JOIN YourGroupTable g ON g.GroupID = it.GroupRef;
+
+-- نمونه موجودی
+-- CREATE OR REPLACE VIEW mali_inventory AS
+-- SELECT
+--   it.Code AS sku,
+--   it.Title AS name,
+--   IFNULL(g.Title, 'سایر') AS category,
+--   IFNULL(s.Quantity, 0) AS quantity,
+--   IFNULL(s.Quantity, 0) * IFNULL(p.Fee, 0) AS value,
+--   IFNULL(w.Title, 'انبار') AS warehouse
+-- FROM YourItemTable it
+-- LEFT JOIN YourStockTable s ON s.ItemRef = it.ItemID
+-- LEFT JOIN YourPriceTable p ON p.ItemRef = it.ItemID
+-- LEFT JOIN YourWarehouseTable w ON w.StockID = s.StockRef
+-- LEFT JOIN YourGroupTable g ON g.GroupID = it.GroupRef;
+
+-- حداقل ستون‌های لازم:
+-- mali_sales_invoices(invoice_date, amount, discount, category, quantity)
+-- mali_purchase_invoices(invoice_date, amount, discount, category, quantity)
+-- mali_inventory(sku, name, category, quantity, value, warehouse)
