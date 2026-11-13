@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# مالی‌نمای یکپارچه — نصب و راه‌اندازی با یک دستور
+# مالی‌نمای یکپارچه — نصب و راه‌اندازی با سرویس systemctl
 # استفاده:
-#   bash install.sh
-#   bash install.sh --dev          # حالت توسعه (hot reload)
-#   bash install.sh --port 3000
-#   bash install.sh --no-start     # فقط نصب، بدون اجرا
-#   bash install.sh --systemd      # سرویس systemd (نیاز به root)
+#   sudo bash install.sh                 # پیش‌فرض: بیلد + سرویس mali-namay
+#   sudo bash install.sh --port 3000
+#   bash install.sh --no-systemd         # بدون systemd (nohup)
+#   bash install.sh --dev                # حالت توسعه (بدون systemd)
+#   bash install.sh --no-start           # فقط نصب/بیلد
 
 set -euo pipefail
 
@@ -13,7 +13,7 @@ APP_NAME="mali-namay"
 PORT="${PORT:-3000}"
 MODE="prod"
 DO_START=1
-USE_SYSTEMD=0
+USE_SYSTEMD=1
 HOST="0.0.0.0"
 MIN_NODE_MAJOR=20
 
@@ -30,24 +30,32 @@ usage() {
 Usage: bash install.sh [options]
 
 Options:
-  --dev           نصب و اجرای حالت توسعه (next dev)
+  --dev           نصب و اجرای حالت توسعه (next dev، بدون systemd)
   --prod          بیلد و اجرای production (پیش‌فرض)
   --port N        پورت سرویس (پیش‌فرض 3000)
   --host ADDR     آدرس bind (پیش‌فرض 0.0.0.0)
-  --no-start      فقط نصب/بیلد؛ اجرا نکن
-  --systemd       ساخت و فعال‌سازی سرویس systemd
+  --no-start      فقط نصب/بیلد؛ سرویس را اجرا نکن
+  --systemd       سرویس systemctl (پیش‌فرض)
+  --no-systemd    بدون systemd؛ اجرا با nohup
   -h, --help      راهنما
+
+سرویس:
+  sudo systemctl status mali-namay
+  sudo systemctl restart mali-namay
+  sudo systemctl stop mali-namay
+  journalctl -u mali-namay -f
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dev) MODE="dev"; shift ;;
+    --dev) MODE="dev"; USE_SYSTEMD=0; shift ;;
     --prod) MODE="prod"; shift ;;
     --port) PORT="${2:-}"; shift 2 ;;
     --host) HOST="${2:-}"; shift 2 ;;
     --no-start) DO_START=0; shift ;;
     --systemd) USE_SYSTEMD=1; shift ;;
+    --no-systemd) USE_SYSTEMD=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "گزینه ناشناخته: $1 (از --help استفاده کنید)" ;;
   esac
@@ -91,12 +99,31 @@ detect_ip() {
   bash "$ROOT_DIR/scripts/detect-ip.sh"
 }
 
+sudo_run() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo "$@"
+  else
+    die "برای سرویس systemctl به root/sudo نیاز است"
+  fi
+}
+
+service_user() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    echo "${SUDO_USER:-root}"
+  else
+    echo "$(id -un)"
+  fi
+}
+
 log "بررسی پیش‌نیازها"
 need_cmd curl
 check_node
 
 log "ایجاد پوشه‌های لازم"
 mkdir -p "$ROOT_DIR/data" "$ROOT_DIR/logs"
+chmod +x "$ROOT_DIR/scripts/"*.sh 2>/dev/null || true
 ok "data/ و logs/ آماده است"
 
 log "نصب وابستگی‌ها (npm install)"
@@ -111,40 +138,49 @@ fi
 
 write_systemd() {
   local unit="/etc/systemd/system/${APP_NAME}.service"
+  local user
+  user="$(service_user)"
+  local node_dir
+  node_dir="$(dirname "$(command -v node)")"
 
-  [[ "$(id -u)" -eq 0 ]] || die "برای --systemd باید با root اجرا کنید (sudo bash install.sh --systemd)"
+  log "نصب سرویس systemctl: ${APP_NAME}.service"
 
-  cat >"$unit" <<EOF
+  sudo_run tee "$unit" >/dev/null <<EOF
 [Unit]
 Description=Mali Namay Unified Dashboard (CRM / Holoo / Sepidar)
-After=network.target
+Documentation=https://github.com/arynishere/accounting
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 WorkingDirectory=${ROOT_DIR}
+User=${user}
+Group=${user}
 Environment=NODE_ENV=production
 Environment=PORT=${PORT}
 Environment=HOST=${HOST}
+Environment=PATH=${node_dir}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=/bin/bash ${ROOT_DIR}/scripts/start.sh --prod --host ${HOST} --port ${PORT}
 Restart=always
 RestartSec=5
-User=${SUDO_USER:-root}
+KillMode=mixed
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-  systemctl daemon-reload
-  systemctl enable "${APP_NAME}.service"
-  systemctl restart "${APP_NAME}.service"
-  ok "سرویس systemd: ${APP_NAME}.service فعال شد"
-  systemctl --no-pager --full status "${APP_NAME}.service" || true
+  sudo_run systemctl daemon-reload
+  sudo_run systemctl enable "${APP_NAME}.service"
+  sudo_run systemctl restart "${APP_NAME}.service"
+  ok "سرویس systemd فعال شد: ${APP_NAME}.service"
+  sudo_run systemctl --no-pager --full status "${APP_NAME}.service" || true
 }
 
 start_app() {
   local ip
   ip="$(detect_ip)"
-  # همیشه روی همه اینترفیس‌ها گوش بده تا با آی‌پی ماشین (ip a) در دسترس باشد
   HOST="${HOST:-0.0.0.0}"
   PORT="${PORT:-3000}"
 
@@ -153,14 +189,26 @@ start_app() {
 
   if [[ "$USE_SYSTEMD" -eq 1 ]]; then
     write_systemd
+
+    for _ in $(seq 1 45); do
+      if curl -fsS "http://${ip}:${PORT}/" >/dev/null 2>&1 \
+        || curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+        break
+      fi
+      sleep 1
+    done
+
     echo
-    ok "برنامه روی آی‌پی ماشین بالا آمد:"
-    echo "  http://${ip}:${PORT}"
-    echo "  http://${ip}:${PORT}/settings"
+    ok "سرویس systemctl روی آی‌پی ماشین بالا آمد"
+    echo "  آدرس:     http://${ip}:${PORT}"
+    echo "  تنظیمات:  http://${ip}:${PORT}/settings"
+    echo "  وضعیت:    sudo systemctl status ${APP_NAME}"
+    echo "  لاگ:      journalctl -u ${APP_NAME} -f"
+    echo "  ری‌استارت: sudo systemctl restart ${APP_NAME}"
+    echo "  توقف:     sudo systemctl stop ${APP_NAME}"
     return
   fi
 
-  # اگر پورت در حال استفاده است، پروسه قبلی next را متوقف نکن مگر خودمان باشیم
   if ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
     warn "پورت ${PORT} از قبل در حال استفاده است — همان را نگه می‌داریم"
     echo "  http://${ip}:${PORT}"
@@ -168,20 +216,18 @@ start_app() {
   fi
 
   mkdir -p "$ROOT_DIR/logs"
-  chmod +x "$ROOT_DIR/scripts/"*.sh 2>/dev/null || true
   if [[ "$MODE" == "dev" ]]; then
     log "اجرای حالت توسعه — در دسترس روی http://${ip}:${PORT}"
     nohup bash "$ROOT_DIR/scripts/start.sh" --dev --host "$HOST" --port "$PORT" \
       >"$ROOT_DIR/logs/app.log" 2>&1 &
     echo $! >"$ROOT_DIR/logs/app.pid"
   else
-    log "اجرای production — در دسترس روی http://${ip}:${PORT}"
+    log "اجرای production (بدون systemd) — http://${ip}:${PORT}"
     nohup bash "$ROOT_DIR/scripts/start.sh" --prod --host "$HOST" --port "$PORT" \
       >"$ROOT_DIR/logs/app.log" 2>&1 &
     echo $! >"$ROOT_DIR/logs/app.pid"
   fi
 
-  # صبر تا روی آی‌پی ماشین پاسخ بدهد
   for _ in $(seq 1 45); do
     if curl -fsS "http://${ip}:${PORT}/" >/dev/null 2>&1 \
       || curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
@@ -191,29 +237,25 @@ start_app() {
   done
 
   echo
-  ok "نصب و راه‌اندازی انجام شد — روی آی‌پی ماشین"
+  ok "راه‌اندازی بدون systemd انجام شد"
   echo "  اصلی:    http://${ip}:${PORT}"
   echo "  تنظیمات: http://${ip}:${PORT}/settings"
-  echo "  لوکال:   http://127.0.0.1:${PORT}"
   echo "  لاگ:     ${ROOT_DIR}/logs/app.log"
-  echo
-  echo "توقف:"
-  echo "  bash scripts/stop.sh"
+  echo "  توقف:    bash scripts/stop.sh"
 }
 
 log "خلاصه تنظیمات"
-echo "  مسیر:  $ROOT_DIR"
-echo "  حالت:  $MODE"
-echo "  پورت:  $PORT"
-echo "  Host:  $HOST"
+echo "  مسیر:    $ROOT_DIR"
+echo "  حالت:    $MODE"
+echo "  پورت:    $PORT"
+echo "  Host:    $HOST"
+echo "  systemd: $([[ "$USE_SYSTEMD" -eq 1 ]] && echo yes || echo no)"
 
 if [[ "$DO_START" -eq 1 ]]; then
   start_app
 else
-  ok "نصب تمام شد (--no-start). برای اجرا:"
-  if [[ "$MODE" == "dev" ]]; then
-    echo "  npm run dev"
-  else
-    echo "  npm run start"
-  fi
+  ok "نصب تمام شد (--no-start). برای فعال‌سازی سرویس:"
+  echo "  sudo bash install.sh"
+  echo "  # یا:"
+  echo "  sudo systemctl enable --now ${APP_NAME}"
 fi

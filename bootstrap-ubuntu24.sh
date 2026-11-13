@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# مالی‌نما — نصب یک‌مرحله‌ای روی Ubuntu 24.04
+# مالی‌نما — نصب یک‌مرحله‌ای روی Ubuntu 24.04 با سرویس systemctl
 #
 # روی ماشین جدید فقط یکی از این‌ها را اجرا کنید:
 #
@@ -10,11 +10,7 @@
 #   git clone https://github.com/arynishere/accounting.git
 #   cd accounting && bash bootstrap-ubuntu24.sh
 #
-# گزینه‌ها:
-#   bash bootstrap-ubuntu24.sh --port 3000
-#   bash bootstrap-ubuntu24.sh --dir /opt/mali-namay
-#   sudo bash bootstrap-ubuntu24.sh --systemd
-#   bash bootstrap-ubuntu24.sh --dev
+# سرویس همیشه به صورت systemctl نصب می‌شود (mali-namay).
 
 set -euo pipefail
 
@@ -24,7 +20,7 @@ DEFAULT_DIR="${HOME}/mali-namay"
 INSTALL_DIR=""
 PORT="${PORT:-3000}"
 MODE="prod"
-USE_SYSTEMD=0
+USE_SYSTEMD=1
 DO_START=1
 
 log()  { printf '\n\033[1;36m==>\033[0m %s\n' "$*"; }
@@ -39,11 +35,17 @@ Usage: bash bootstrap-ubuntu24.sh [options]
 Options:
   --dir PATH      مسیر نصب (پیش‌فرض: ~/mali-namay یا همین ریپو)
   --port N        پورت (پیش‌فرض 3000)
-  --dev           حالت توسعه
-  --prod          بیلد production (پیش‌فرض)
-  --systemd       سرویس دائمی systemd (با sudo)
+  --dev           حالت توسعه (بدون systemd)
+  --prod          بیلد production + systemd (پیش‌فرض)
+  --systemd       سرویس systemctl (پیش‌فرض)
+  --no-systemd    بدون systemd
   --no-start      فقط نصب/بیلد
   -h, --help      راهنما
+
+بعد از نصب:
+  sudo systemctl status mali-namay
+  sudo systemctl restart mali-namay
+  journalctl -u mali-namay -f
 EOF
 }
 
@@ -51,9 +53,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --dir) INSTALL_DIR="${2:-}"; shift 2 ;;
     --port) PORT="${2:-}"; shift 2 ;;
-    --dev) MODE="dev"; shift ;;
+    --dev) MODE="dev"; USE_SYSTEMD=0; shift ;;
     --prod) MODE="prod"; shift ;;
     --systemd) USE_SYSTEMD=1; shift ;;
+    --no-systemd) USE_SYSTEMD=0; shift ;;
     --no-start) DO_START=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "گزینه ناشناخته: $1" ;;
@@ -68,7 +71,7 @@ sudo_run() {
   elif command -v sudo >/dev/null 2>&1; then
     sudo "$@"
   else
-    die "برای نصب پکیج‌ها به root/sudo نیاز است"
+    die "برای نصب پکیج‌ها / سرویس systemctl به root/sudo نیاز است"
   fi
 }
 
@@ -160,7 +163,7 @@ main() {
   ver="${rest%%|*}"
   pretty="${rest#*|}"
 
-  log "شروع نصب مالی‌نما"
+  log "شروع نصب مالی‌نما (systemctl)"
   echo "  سیستم: ${pretty}"
   echo "  ریپو:  ${REPO_URL} (${REPO_BRANCH})"
 
@@ -182,7 +185,12 @@ main() {
   fi
 
   cd "$dir"
-  chmod +x install.sh scripts/stop.sh bootstrap-ubuntu24.sh 2>/dev/null || true
+  chmod +x install.sh bootstrap-ubuntu24.sh scripts/*.sh 2>/dev/null || true
+
+  # مالکیت را برای کاربر واقعی نگه دار (اگر با sudo کلون شده)
+  if [[ "$(id -u)" -eq 0 && -n "${SUDO_USER:-}" && "${SUDO_USER}" != "root" ]]; then
+    chown -R "${SUDO_USER}:${SUDO_USER}" "$dir" || true
+  fi
 
   log "اجرای install.sh"
   local args=()
@@ -193,8 +201,13 @@ main() {
   fi
   args+=(--port "$PORT")
   [[ "$DO_START" -eq 0 ]] && args+=(--no-start)
-  [[ "$USE_SYSTEMD" -eq 1 ]] && args+=(--systemd)
+  if [[ "$USE_SYSTEMD" -eq 1 ]]; then
+    args+=(--systemd)
+  else
+    args+=(--no-systemd)
+  fi
 
+  # systemd همیشه با sudo
   if [[ "$USE_SYSTEMD" -eq 1 ]]; then
     sudo_run bash install.sh "${args[@]}"
   else
@@ -206,12 +219,19 @@ main() {
   ip="${ip:-127.0.0.1}"
 
   echo
-  ok "تمام — روی آی‌پی ماشین (از ip a) بالا آمد"
-  echo "  مسیر:     $dir"
-  echo "  اصلی:     http://${ip}:${PORT}"
-  echo "  تنظیمات:  http://${ip}:${PORT}/settings"
-  echo "  لوکال:    http://127.0.0.1:${PORT}"
-  echo "  توقف:     bash $dir/scripts/stop.sh"
+  ok "تمام — سرویس systemctl روی آی‌پی ماشین"
+  echo "  مسیر:      $dir"
+  echo "  اصلی:      http://${ip}:${PORT}"
+  echo "  تنظیمات:   http://${ip}:${PORT}/settings"
+  if [[ "$USE_SYSTEMD" -eq 1 ]]; then
+    echo "  سرویس:     mali-namay"
+    echo "  وضعیت:     sudo systemctl status mali-namay"
+    echo "  لاگ:       journalctl -u mali-namay -f"
+    echo "  ری‌استارت:  sudo systemctl restart mali-namay"
+    echo "  توقف:      sudo systemctl stop mali-namay"
+  else
+    echo "  توقف:      bash $dir/scripts/stop.sh"
+  fi
 }
 
 main

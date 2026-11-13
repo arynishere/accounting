@@ -10,7 +10,7 @@
 
 ## نصب سریع روی Ubuntu 24 (فقط یک دستور)
 
-روی ماشین جدید همین را بزنید (Node و وابستگی‌ها را خودش نصب می‌کند، کلون می‌کند، بیلد می‌گیرد و سرویس را بالا می‌آورد):
+روی ماشین جدید همین را بزنید. خودش Node، کلون، بیلد و **سرویس systemctl** (`mali-namay`) را راه می‌اندازد:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/arynishere/accounting/main/bootstrap-ubuntu24.sh | bash
@@ -24,38 +24,41 @@ cd accounting
 bash bootstrap-ubuntu24.sh
 ```
 
-سرویس دائمی (بعد از ریبوت هم بالا بماند):
+بعد از نصب، با `ip a` آی‌پی ماشین تشخیص داده می‌شود و سرویس روی **پورت ۳۰۰۰** با systemctl بالا می‌ماند (حتی بعد از ریبوت):
+
+- اصلی: `http://IP-ماشین:3000`
+- تنظیمات: `http://IP-ماشین:3000/settings`
+
+### مدیریت سرویس (systemctl)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/arynishere/accounting/main/bootstrap-ubuntu24.sh | sudo bash -s -- --systemd
+sudo systemctl status mali-namay
+sudo systemctl restart mali-namay
+sudo systemctl stop mali-namay
+sudo systemctl start mali-namay
+journalctl -u mali-namay -f
 ```
-
-بعد از نصب، اسکریپت با `ip a` آی‌پی ماشین را می‌گیرد و سرویس را روی **پورت ۳۰۰۰** طوری بالا می‌آورد که با همان آی‌پی در دسترس باشد:
-
-- اصلی: `http://IP-ماشین:3000` (خودکار تشخیص داده می‌شود)
-- تنظیمات: `http://IP-ماشین:3000/settings`
-- لوکال: `http://127.0.0.1:3000`
 
 ### گزینه‌های bootstrap
 
 ```bash
-bash bootstrap-ubuntu24.sh                 # نصب + بیلد + اجرا روی 3000
+bash bootstrap-ubuntu24.sh                 # نصب + بیلد + سرویس systemctl روی 3000
 bash bootstrap-ubuntu24.sh --port 4000     # پورت دلخواه
 bash bootstrap-ubuntu24.sh --dir /opt/mali-namay
-bash bootstrap-ubuntu24.sh --dev           # حالت توسعه
+bash bootstrap-ubuntu24.sh --dev           # حالت توسعه (بدون systemd)
+bash bootstrap-ubuntu24.sh --no-systemd    # بدون systemd
 bash bootstrap-ubuntu24.sh --no-start      # فقط نصب و بیلد
-sudo bash bootstrap-ubuntu24.sh --systemd  # سرویس systemd
-bash scripts/stop.sh                       # توقف
+sudo systemctl stop mali-namay             # توقف سرویس
 ```
 
 ### نصب وقتی ریپو از قبل هست (`install.sh`)
 
 ```bash
-bash install.sh                 # بیلد production + اجرا روی پورت 3000
-bash install.sh --dev           # حالت توسعه
-bash install.sh --port 4000     # پورت دلخواه
-bash install.sh --no-start      # فقط نصب و بیلد
-sudo bash install.sh --systemd  # سرویس دائمی systemd
+sudo bash install.sh              # بیلد + سرویس systemctl (پیش‌فرض)
+sudo bash install.sh --port 4000
+bash install.sh --dev             # حالت توسعه
+bash install.sh --no-systemd      # بدون systemd
+bash install.sh --no-start        # فقط نصب و بیلد
 ```
 
 ### پیش‌نیاز
@@ -65,7 +68,7 @@ sudo bash install.sh --systemd  # سرویس دائمی systemd
 | سیستم‌عامل | Ubuntu 24.04 (سایر لینوکس‌ها هم معمولاً کار می‌کند) |
 | Node.js | 20 یا بالاتر (اسکریپت bootstrap خودش Node 22 می‌گذارد) |
 | RAM | حدود ۱ گیگ آزاد برای بیلد |
-| دسترسی | برای نصب پکیج‌ها: `sudo` |
+| دسترسی | `sudo` برای نصب پکیج و سرویس systemctl |
 ---
 
 ## راهنمای راه‌اندازی بعد از نصب
@@ -192,5 +195,6 @@ data/                      # تنظیمات محلی (gitignore)
 | `Node.js نصب نیست` | طبق بخش پیش‌نیاز Node 20+ نصب کنید |
 | پورت اشغال است | `bash install.sh --port 3001` |
 | هلو/سپیدار وصل نمی‌شود | از سرور به `IP:8080` یا `IP:7373` با `curl` تست کنید؛ فایروال را چک کنید |
-| لاگ برنامه | `tail -f logs/app.log` |
+| لاگ برنامه | `journalctl -u mali-namay -f` |
 | سرویس systemd | `sudo systemctl status mali-namay` |
+| ری‌استارت | `sudo systemctl restart mali-namay` |
