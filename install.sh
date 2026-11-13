@@ -87,18 +87,8 @@ check_node() {
   ok "Node $(node -v) / npm $(npm -v)"
 }
 
-primary_ip() {
-  hostname -I 2>/dev/null | awk '{print $1}' || true
-  ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}' || true
-}
-
 detect_ip() {
-  local ip
-  ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
-  if [[ -z "${ip:-}" ]]; then
-    ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}' || true)"
-  fi
-  echo "${ip:-127.0.0.1}"
+  bash "$ROOT_DIR/scripts/detect-ip.sh"
 }
 
 log "بررسی پیش‌نیازها"
@@ -121,9 +111,6 @@ fi
 
 write_systemd() {
   local unit="/etc/systemd/system/${APP_NAME}.service"
-  local node_bin npm_bin
-  node_bin="$(command -v node)"
-  npm_bin="$(command -v npm)"
 
   [[ "$(id -u)" -eq 0 ]] || die "برای --systemd باید با root اجرا کنید (sudo bash install.sh --systemd)"
 
@@ -138,7 +125,7 @@ WorkingDirectory=${ROOT_DIR}
 Environment=NODE_ENV=production
 Environment=PORT=${PORT}
 Environment=HOST=${HOST}
-ExecStart=${npm_bin} run start -- -H ${HOST} -p ${PORT}
+ExecStart=/bin/bash ${ROOT_DIR}/scripts/start.sh --prod --host ${HOST} --port ${PORT}
 Restart=always
 RestartSec=5
 User=${SUDO_USER:-root}
@@ -157,13 +144,19 @@ EOF
 start_app() {
   local ip
   ip="$(detect_ip)"
+  # همیشه روی همه اینترفیس‌ها گوش بده تا با آی‌پی ماشین (ip a) در دسترس باشد
+  HOST="${HOST:-0.0.0.0}"
+  PORT="${PORT:-3000}"
+
+  log "آی‌پی ماشین از ip a: ${ip}"
+  echo "  آدرس اصلی: http://${ip}:${PORT}"
 
   if [[ "$USE_SYSTEMD" -eq 1 ]]; then
     write_systemd
     echo
-    ok "برنامه در دسترس است:"
+    ok "برنامه روی آی‌پی ماشین بالا آمد:"
     echo "  http://${ip}:${PORT}"
-    echo "  http://127.0.0.1:${PORT}"
+    echo "  http://${ip}:${PORT}/settings"
     return
   fi
 
@@ -175,33 +168,37 @@ start_app() {
   fi
 
   mkdir -p "$ROOT_DIR/logs"
+  chmod +x "$ROOT_DIR/scripts/"*.sh 2>/dev/null || true
   if [[ "$MODE" == "dev" ]]; then
-    log "اجرای حالت توسعه روی ${HOST}:${PORT}"
-    nohup npm run dev -- -H "$HOST" -p "$PORT" >"$ROOT_DIR/logs/app.log" 2>&1 &
+    log "اجرای حالت توسعه — در دسترس روی http://${ip}:${PORT}"
+    nohup bash "$ROOT_DIR/scripts/start.sh" --dev --host "$HOST" --port "$PORT" \
+      >"$ROOT_DIR/logs/app.log" 2>&1 &
     echo $! >"$ROOT_DIR/logs/app.pid"
   else
-    log "اجرای production روی ${HOST}:${PORT}"
-    nohup npm run start -- -H "$HOST" -p "$PORT" >"$ROOT_DIR/logs/app.log" 2>&1 &
+    log "اجرای production — در دسترس روی http://${ip}:${PORT}"
+    nohup bash "$ROOT_DIR/scripts/start.sh" --prod --host "$HOST" --port "$PORT" \
+      >"$ROOT_DIR/logs/app.log" 2>&1 &
     echo $! >"$ROOT_DIR/logs/app.pid"
   fi
 
-  # صبر کوتاه برای بالا آمدن سرور
-  for _ in $(seq 1 30); do
-    if curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+  # صبر تا روی آی‌پی ماشین پاسخ بدهد
+  for _ in $(seq 1 45); do
+    if curl -fsS "http://${ip}:${PORT}/" >/dev/null 2>&1 \
+      || curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
       break
     fi
     sleep 1
   done
 
   echo
-  ok "نصب و راه‌اندازی انجام شد"
-  echo "  لوکال:   http://127.0.0.1:${PORT}"
-  echo "  شبکه:    http://${ip}:${PORT}"
+  ok "نصب و راه‌اندازی انجام شد — روی آی‌پی ماشین"
+  echo "  اصلی:    http://${ip}:${PORT}"
   echo "  تنظیمات: http://${ip}:${PORT}/settings"
+  echo "  لوکال:   http://127.0.0.1:${PORT}"
   echo "  لاگ:     ${ROOT_DIR}/logs/app.log"
   echo
   echo "توقف:"
-  echo "  kill \$(cat logs/app.pid)"
+  echo "  bash scripts/stop.sh"
 }
 
 log "خلاصه تنظیمات"

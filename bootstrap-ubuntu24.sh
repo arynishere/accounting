@@ -202,15 +202,15 @@ main() {
   fi
 
   local ip
-  ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  ip="$(bash "$dir/scripts/detect-ip.sh" 2>/dev/null || true)"
   ip="${ip:-127.0.0.1}"
 
   echo
-  ok "تمام"
+  ok "تمام — روی آی‌پی ماشین (از ip a) بالا آمد"
   echo "  مسیر:     $dir"
-  echo "  لوکال:    http://127.0.0.1:${PORT}"
-  echo "  شبکه:     http://${ip}:${PORT}"
+  echo "  اصلی:     http://${ip}:${PORT}"
   echo "  تنظیمات:  http://${ip}:${PORT}/settings"
+  echo "  لوکال:    http://127.0.0.1:${PORT}"
   echo "  توقف:     bash $dir/scripts/stop.sh"
 }
 

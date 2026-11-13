@@ -30,11 +30,11 @@ bash bootstrap-ubuntu24.sh
 curl -fsSL https://raw.githubusercontent.com/arynishere/accounting/main/bootstrap-ubuntu24.sh | sudo bash -s -- --systemd
 ```
 
-بعد از نصب:
+بعد از نصب، اسکریپت با `ip a` آی‌پی ماشین را می‌گیرد و سرویس را روی **پورت ۳۰۰۰** طوری بالا می‌آورد که با همان آی‌پی در دسترس باشد:
 
+- اصلی: `http://IP-ماشین:3000` (خودکار تشخیص داده می‌شود)
+- تنظیمات: `http://IP-ماشین:3000/settings`
 - لوکال: `http://127.0.0.1:3000`
-- شبکه / IP سرور: `http://IP-سرور:3000`
-- تنظیمات: `http://IP-سرور:3000/settings`
 
 ### گزینه‌های bootstrap
 
@@ -177,12 +177,13 @@ API گزارش‌ها: `GET /api/reports/[id]?from&to` و `format=xml|xls`
 ```
 bootstrap-ubuntu24.sh      # نصب کامل روی Ubuntu 24 (کلون + Node + بیلد + اجرا)
 install.sh                 # نصب وقتی ریپو از قبل هست
+scripts/detect-ip.sh       # خواندن آی‌پی ماشین از ip a
+scripts/start.sh           # اجرا روی 0.0.0.0:3000 + نمایش آی‌پی ماشین
 scripts/stop.sh            # توقف
 src/lib/adapters/          # آداپتر CRM / هلو / سپیدار / Sepidar-MySQL
 docs/                      # PDF مستندات رسمی + ویوهای MySQL سپیدار
 data/                      # تنظیمات محلی (gitignore)
-```
----
+```---
 
 ## عیب‌یابی
 
